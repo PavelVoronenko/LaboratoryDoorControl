@@ -16,6 +16,7 @@ import com.antago30.laboratory.ui.component.StaffPanel
 import com.antago30.laboratory.ui.component.TopBar
 import com.antago30.laboratory.viewmodel.LabControlViewModel
 import android.widget.Toast
+import com.antago30.laboratory.ui.component.BleAdvertiserController
 
 @Composable
 fun LabControlScreen(
@@ -25,6 +26,16 @@ fun LabControlScreen(
     val context = LocalContext.current
     val staffList by viewModel.staffList
     val functions by viewModel.functions
+
+    BleAdvertiserController(
+        isBroadcasting = viewModel.isBroadcasting,
+        onBroadcastingSupported = { supported ->
+            if (!supported) {
+                Toast.makeText(context, "BLE реклама не поддерживается", Toast.LENGTH_SHORT).show()
+                viewModel.toggleFunction("broadcast")
+            }
+        }
+    )
 
     ConstraintLayout(
         modifier = modifier
@@ -36,9 +47,7 @@ fun LabControlScreen(
         TopBar(
             isBroadcasting = viewModel.isBroadcasting,
             onSettingsButtonClick = {
-                // Например: открыть экран настроек
-                // Или, если ты хочешь именно "toggleTopBarStatus" — вызови его без id
-                //viewModel.toggleTopBarStatus() // ← без id, если это глобальный флаг
+                //viewModel.toggleTopBarStatus()
             },
             modifier = Modifier.constrainAs(topBar) {
                 top.linkTo(parent.top)
@@ -51,7 +60,6 @@ fun LabControlScreen(
             staffList = staffList,
             onStaffClicked = { id ->
                 viewModel.toggleStaffStatus(id)
-                //Toast.makeText(context, "Статус изменён", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.constrainAs(staffPanel) {
                 top.linkTo(topBar.bottom, margin = 4.dp)
@@ -64,13 +72,7 @@ fun LabControlScreen(
         FunctionsPanel(
             functions = functions,
             onFunctionToggled = { id ->
-                val currentFunction = functions.find { it.id == id }
-                val wasEnabled = currentFunction?.isEnabled ?: false
-                val newName = currentFunction?.label ?: "Функция"
-
                 viewModel.toggleFunction(id)
-
-                Toast.makeText(context, "«$newName»", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.constrainAs(functionsPanel) {
                 top.linkTo(staffPanel.bottom, margin = 12.dp)
@@ -83,7 +85,6 @@ fun LabControlScreen(
         OpenDoorButton(
             onClick = {
                 viewModel.onOpenDoorClicked()
-                Toast.makeText(context, "Открыть дверь", Toast.LENGTH_SHORT).show()
             },
             modifier = Modifier.constrainAs(actionButton) {
                 bottom.linkTo(parent.bottom, margin = 32.dp)
