@@ -1,6 +1,11 @@
 package com.antago30.laboratory.ui.component
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -43,17 +48,17 @@ fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(
-                id = if (isBroadcasting) {
-                    R.drawable.advertise
-                } else {
-                    R.drawable.not_advertise
-                }
-            ),
-            contentDescription = stringResource(R.string.back),
-            modifier = Modifier.size(32.dp)
-        )
+        AnimatedVisibility(
+            visible = isBroadcasting,
+            enter = fadeIn() + scaleIn(),
+            exit = fadeOut() + scaleOut()
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.advertise),
+                contentDescription = stringResource(R.string.startAdvertising),
+                modifier = Modifier.size(32.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 

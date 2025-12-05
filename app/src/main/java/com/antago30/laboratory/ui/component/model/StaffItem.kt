@@ -69,7 +69,9 @@ fun StaffItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(modifier = Modifier.size(72.dp).padding(8.dp)) {
+            Box(modifier = Modifier
+                .size(72.dp)
+                .padding(8.dp)) {
                 Box(
                     modifier = Modifier
                         .size(56.dp)

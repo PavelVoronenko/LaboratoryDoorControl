@@ -17,7 +17,8 @@ class BleAdvertiser(
     private val serviceUuid: UUID = UUID.fromString("0000ff12-0000-1000-8000-00805f9b34fb")
 ) {
 
-    private val bluetoothManager: BluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+    private val bluetoothManager: BluetoothManager =
+        context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager.adapter
     private val advertiser: BluetoothLeAdvertiser? = adapter?.bluetoothLeAdvertiser
 
@@ -66,6 +67,4 @@ class BleAdvertiser(
                 advertiser != null &&
                 adapter.isMultipleAdvertisementSupported
     }
-
-    fun isAdvertising(): Boolean = isAdvertising
 }

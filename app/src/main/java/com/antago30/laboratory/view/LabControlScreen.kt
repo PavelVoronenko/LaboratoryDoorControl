@@ -3,6 +3,7 @@ package com.antago30.laboratory.view
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -15,8 +16,6 @@ import com.antago30.laboratory.ui.component.OpenDoorButton
 import com.antago30.laboratory.ui.component.StaffPanel
 import com.antago30.laboratory.ui.component.TopBar
 import com.antago30.laboratory.viewmodel.LabControlViewModel
-import android.widget.Toast
-import com.antago30.laboratory.ui.component.BleAdvertiserController
 
 @Composable
 fun LabControlScreen(
@@ -27,15 +26,10 @@ fun LabControlScreen(
     val staffList by viewModel.staffList
     val functions by viewModel.functions
 
-    BleAdvertiserController(
-        isBroadcasting = viewModel.isBroadcasting,
-        onBroadcastingSupported = { supported ->
-            if (!supported) {
-                Toast.makeText(context, "BLE реклама не поддерживается", Toast.LENGTH_SHORT).show()
-                viewModel.toggleFunction("broadcast")
-            }
-        }
-    )
+    LaunchedEffect(Unit) {
+        viewModel.setAppContext(context)
+        viewModel.syncServiceState()
+    }
 
     ConstraintLayout(
         modifier = modifier
@@ -45,10 +39,8 @@ fun LabControlScreen(
         val (topBar, staffPanel, functionsPanel, actionButton) = createRefs()
 
         TopBar(
-            isBroadcasting = viewModel.isBroadcasting,
-            onSettingsButtonClick = {
-                //viewModel.toggleTopBarStatus()
-            },
+            isBroadcasting = viewModel.isAdvertising,
+            onSettingsButtonClick = { },
             modifier = Modifier.constrainAs(topBar) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
@@ -72,7 +64,20 @@ fun LabControlScreen(
         FunctionsPanel(
             functions = functions,
             onFunctionToggled = { id ->
-                viewModel.toggleFunction(id)
+                if (id == "broadcast") {
+                    val wasEnabled = functions.find { it.id == "broadcast" }?.isEnabled == true
+                    val nowEnabled = !wasEnabled
+
+                    viewModel.toggleFunction(id)
+
+                    if (nowEnabled) {
+                        viewModel.startBleAdvertising()
+                    } else {
+                        viewModel.stopBleAdvertising()
+                    }
+                } else {
+                    viewModel.toggleFunction(id)
+                }
             },
             modifier = Modifier.constrainAs(functionsPanel) {
                 top.linkTo(staffPanel.bottom, margin = 12.dp)
@@ -95,4 +100,3 @@ fun LabControlScreen(
         )
     }
 }
-
