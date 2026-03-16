@@ -1,4 +1,4 @@
-package com.antago30.laboratory.ui.component
+package com.antago30.laboratory.ui.component.labControlScreen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
@@ -10,8 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.model.FunctionItem
+import com.antago30.laboratory.ui.component.labControlScreen.model.ModeItem
 import com.antago30.laboratory.ui.theme.CardBg
-import com.antago30.laboratory.ui.component.model.ModeItem
 import com.antago30.laboratory.ui.theme.Primary
 import kotlin.collections.forEach
 

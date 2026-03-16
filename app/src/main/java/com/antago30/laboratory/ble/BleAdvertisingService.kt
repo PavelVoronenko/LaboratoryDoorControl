@@ -1,8 +1,10 @@
 package com.antago30.laboratory.ble
 
+import android.Manifest
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import androidx.annotation.RequiresPermission
 import com.antago30.laboratory.util.NotificationHelper
 
 class BleAdvertisingService : Service() {
@@ -24,6 +26,7 @@ class BleAdvertisingService : Service() {
         return START_STICKY
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
     override fun onDestroy() {
         bleAdvertiser.stopAdvertising()
         super.onDestroy()

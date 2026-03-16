@@ -11,15 +11,16 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.antago30.laboratory.ui.component.FunctionsPanel
-import com.antago30.laboratory.ui.component.OpenDoorButton
-import com.antago30.laboratory.ui.component.StaffPanel
-import com.antago30.laboratory.ui.component.TopBar
+import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
+import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
+import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
+import com.antago30.laboratory.ui.component.labControlScreen.TopBar
 import com.antago30.laboratory.viewmodel.LabControlViewModel
 
 @Composable
 fun LabControlScreen(
     modifier: Modifier = Modifier,
+    onSettingsClick: () -> Unit,
     viewModel: LabControlViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -40,7 +41,7 @@ fun LabControlScreen(
 
         TopBar(
             isBroadcasting = viewModel.isAdvertising,
-            onSettingsButtonClick = { },
+            onSettingsButtonClick = onSettingsClick,
             modifier = Modifier.constrainAs(topBar) {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)

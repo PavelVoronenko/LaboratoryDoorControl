@@ -1,4 +1,4 @@
-package com.antago30.laboratory.ui.component
+package com.antago30.laboratory.ui.component.labControlScreen
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke

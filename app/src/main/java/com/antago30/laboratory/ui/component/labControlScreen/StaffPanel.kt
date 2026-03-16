@@ -1,4 +1,4 @@
-package com.antago30.laboratory.ui.component
+package com.antago30.laboratory.ui.component.labControlScreen
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.R
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.ui.component.labControlScreen.model.StaffItem
 import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
-import com.antago30.laboratory.ui.component.model.StaffItem
 import kotlin.collections.forEach
 
 @Composable
@@ -45,7 +45,7 @@ fun StaffPanel(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = stringResource(R.string.empoyees),
+                text = stringResource(R.string.employees),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = Primary,

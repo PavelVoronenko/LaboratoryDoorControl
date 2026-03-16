@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 private val DarkColorScheme = darkColorScheme(
     primary = Primary,
     background = DarkBg,
-    surface = CardBg,
+    surface = DarkBg,
     onBackground = Text,
     onSurface = Text,
     error = Outdoor

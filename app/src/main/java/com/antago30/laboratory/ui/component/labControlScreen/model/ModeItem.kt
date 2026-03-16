@@ -1,4 +1,4 @@
-package com.antago30.laboratory.ui.component.model
+package com.antago30.laboratory.ui.component.labControlScreen.model
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row

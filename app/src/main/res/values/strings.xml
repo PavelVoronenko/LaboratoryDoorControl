@@ -3,8 +3,9 @@
     <string name="inside">● В лаборатории</string>
     <string name="outside">● На улице</string>
     <string name="openDoor">Открыть дверь</string>
-    <string name="empoyees">Сотрудники</string>
+    <string name="employees">Сотрудники</string>
     <string name="back">Назад</string>
     <string name="settings">Настройки</string>
     <string name="startAdvertising">Реклама запущена</string>
+    <string name="addUser">addUser</string>
 </resources>
