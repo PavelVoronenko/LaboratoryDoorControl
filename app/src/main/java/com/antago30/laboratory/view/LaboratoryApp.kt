@@ -5,9 +5,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.antago30.laboratory.viewmodel.LabControlViewModel
 
 @Composable
-fun LaboratoryApp(modifier: Modifier = Modifier) {
+fun LaboratoryApp(
+    viewModel: LabControlViewModel,  // ← Принимаем ViewModel
+    modifier: Modifier = Modifier
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -17,11 +21,13 @@ fun LaboratoryApp(modifier: Modifier = Modifier) {
     ) {
         composable("lab_control") {
             LabControlScreen(
+                viewModel = viewModel,  // ← Передаём ViewModel
                 onSettingsClick = { navController.navigate("settings") }
             )
         }
         composable("settings") {
             SettingsScreen(
+                viewModel = viewModel,  // ← Передаём ту же ViewModel
                 onBack = { navController.popBackStack() }
             )
         }

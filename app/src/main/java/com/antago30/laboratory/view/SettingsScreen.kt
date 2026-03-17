@@ -1,215 +1,199 @@
 package com.antago30.laboratory.view
 
-import android.R.attr.bottom
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BluetoothSearching
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.test.hasParent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
-import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
-import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
-import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
-import com.antago30.laboratory.ui.component.labControlScreen.TopBar
-import com.antago30.laboratory.ui.component.settingsScreen.LogItem
-import com.antago30.laboratory.ui.component.settingsScreen.RssiThresholdSection
-import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
-import com.antago30.laboratory.ui.component.settingsScreen.UserSection
-import com.antago30.laboratory.ui.component.settingsScreen.model.LogEntry
+import com.antago30.laboratory.ui.component.settingsScreen.BleDeviceSelectionDialog
+import com.antago30.laboratory.viewmodel.LabControlViewModel
+import kotlinx.coroutines.launch
 
+@RequiresApi(Build.VERSION_CODES.S)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
+@Suppress("MissingPermission")
 fun SettingsScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier
+    viewModel: LabControlViewModel,  // ← Без значения по умолчанию
+    onBack: () -> Unit, onAddUser: () -> Unit = {}, modifier: Modifier = Modifier
 ) {
-    val mockLogs = remember {
-        val now = System.currentTimeMillis()
-        listOf(
-            LogEntry(now - 120_000, "SENSOR", "Дверь открыта"),
-            LogEntry(now - 180_000, "BLE", "Вячеслав Олегович входит в лабораторию"),
-            LogEntry(now - 240_000, "SYSTEM", "Освещение включено"),
-            LogEntry(now - 300_000, "SYSTEM", "Дверь закрыта"),
-            LogEntry(now - 360_000, "BLE", "Павел Евгеньевич покидает лабораторию"),
-            LogEntry(now - 420_000, "BLE", "Владимир Викторович входит в лабораторию"),
-            LogEntry(now - 480_000, "SYSTEM", "Освещение отключено"),
-        )
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var showDeviceDialog by remember { mutableStateOf(false) }
+
+    // 🔹 Лаунчер для запроса разрешений
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val scanGranted = permissions[Manifest.permission.BLUETOOTH_SCAN] == true
+        val connectGranted = permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
+
+        if (scanGranted && connectGranted) {
+            viewModel.startDeviceScan()
+            showDeviceDialog = true
+        } else {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    "Разрешения Bluetooth не предоставлены. Проверьте настройки приложения."
+                )
+            }
+        }
     }
 
-    val staffNames = listOf("Владимир Викторович", "Вячеслав Олегович", "Павел Евгеньевич")
+    //Диалог выбора BLE-устройства
+    if (showDeviceDialog) {
+        BleDeviceSelectionDialog(
+            devices = viewModel.availableDevices,
+            isScanning = viewModel.isScanning,
+            onDeviceSelected = { device ->
+                viewModel.selectDevice(device)
+                showDeviceDialog = false
+            },
+            onDismiss = {
+                viewModel.stopDeviceScan()
+                showDeviceDialog = false
+            },
+            onRefresh = { viewModel.startDeviceScan() })
+    }
 
-    var entryThreshold by remember { mutableStateOf("-60 дБм") }
-    var exitThreshold by remember { mutableStateOf("-80 дБм") }
-
-
-    ConstraintLayout(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp)
-    ) {
-        val (settingsHeader, logItem, functionsPanel, actionButton) = createRefs()
-
-        SettingsHeader(
-            onBack = onBack,
-            modifier = Modifier.constrainAs(settingsHeader) {
-
+    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, topBar = {
+        TopAppBar(title = { Text("Настройки") }, navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад"
+                )
             }
-        )
-
-        LazyColumn(
-            modifier = Modifier.constrainAs(logItem) {
-                top.linkTo(settingsHeader.bottom, margin = 4.dp)
-                /*start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints*/
+        }, actions = {
+            IconButton(onClick = onAddUser) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Добавить пользователя",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
+        })
+    }) { padding ->
+        Column(
+            modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 8.dp)
-            .padding(bottom = 400.dp), // ← оставить место под кнопку (см. шаг 2)
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-
+                .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            mockLogs.forEach { it ->
-                item {
-                    LogItem(log = it, modifier = Modifier.padding(vertical = 2.dp))
-                }
-            }
-        }
+            // 🔹 Блок: выбранное BLE-устройство
+            Card(
+                modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Целевое BLE-устройство",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
 
+                    OutlinedTextField(
+                        value = viewModel.selectedDeviceName ?: viewModel.selectedDeviceAddress
+                        ?: "Не выбрано",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            if (viewModel.selectedDeviceAddress != null) {
+                                IconButton(onClick = { viewModel.clearSelectedDevice() }) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Очистить",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        )
+                    )
 
-        /*StaffPanel(
-            staffList = staffList,
-            onStaffClicked = { id ->
-                viewModel.toggleStaffStatus(id)
-            },
-            modifier = Modifier.constrainAs(staffPanel) {
-                top.linkTo(topBar.bottom, margin = 4.dp)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
-            }
-        )*/
+                    Spacer(modifier = Modifier.height(12.dp))
 
-        /*FunctionsPanel(
-            functions = functions,
-            onFunctionToggled = { id ->
-                if (id == "broadcast") {
-                    val wasEnabled = functions.find { it.id == "broadcast" }?.isEnabled == true
-                    val nowEnabled = !wasEnabled
+                    // 🔹 Кнопка выбора устройства
+                    Button(
+                        onClick = {
+                            // Проверяем разрешения
+                            val hasPermissions = viewModel.checkBlePermissions(context)
 
-                    viewModel.toggleFunction(id)
-
-                    if (nowEnabled) {
-                        viewModel.startBleAdvertising()
-                    } else {
-                        viewModel.stopBleAdvertising()
+                            if (hasPermissions) {
+                                // ✅ Разрешения уже есть — запускаем сканирование
+                                viewModel.startDeviceScan()
+                                showDeviceDialog = true
+                            } else {
+                                // ❌ Запрашиваем разрешения
+                                permissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.BLUETOOTH_SCAN,
+                                        Manifest.permission.BLUETOOTH_CONNECT
+                                    )
+                                )
+                            }
+                        }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.BluetoothSearching,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Выбрать устройство")
                     }
-                } else {
-                    viewModel.toggleFunction(id)
                 }
-            },
-            modifier = Modifier.constrainAs(functionsPanel) {
-                top.linkTo(staffPanel.bottom, margin = 12.dp)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
             }
-        )*/
-
-        /*OpenDoorButton(
-            onClick = {
-                viewModel.onOpenDoorClicked()
-            },
-            modifier = Modifier.constrainAs(actionButton) {
-                bottom.linkTo(parent.bottom, margin = 32.dp)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
-            }
-        )*/
-    }
-
-
-    /*LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-            //.padding(bottom = 80.dp), // ← оставить место под кнопку (см. шаг 2)
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        item {
-            SettingsHeader(onBack = onBack) // ← TopAppBar как обычный элемент списка!
-        }
-
-        item {
-            UserSection(
-                staffNames = staffNames,
-                onAddUser = { name -> }
-            )
-        }
-
-        item {
-            RssiThresholdSection(
-                initialEntry = entryThreshold,
-                initialExit = exitThreshold,
-                onThresholdsChanged = { entry, exit ->
-                    entryThreshold = entry
-                    exitThreshold = exit
-                }
-            )
-        }
-
-        item {
-            androidx.compose.material3.Text(
-                text = "Журнал событий",
-                color = Color.White,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                fontSize = 18.sp,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-        }
-
-        items(mockLogs) { log ->
-            LogItem(log = log, modifier = Modifier.padding(vertical = 4.dp))
         }
     }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Button(
-            onClick = { /* TODO */ },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4DBAFF)),
-            shape = MaterialTheme.shapes.extraLarge,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            androidx.compose.material3.Text(
-                "Сохранить настройки",
-                color = Color.White,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                fontSize = 18.sp
-            )
-        }
-    }*/
 }

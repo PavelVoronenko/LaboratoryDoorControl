@@ -21,7 +21,7 @@ import com.antago30.laboratory.viewmodel.LabControlViewModel
 fun LabControlScreen(
     modifier: Modifier = Modifier,
     onSettingsClick: () -> Unit,
-    viewModel: LabControlViewModel = viewModel()
+    viewModel: LabControlViewModel,
 ) {
     val context = LocalContext.current
     val staffList by viewModel.staffList
