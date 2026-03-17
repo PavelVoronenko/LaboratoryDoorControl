@@ -1,10 +1,8 @@
 package com.antago30.laboratory.view
 
 import android.Manifest
-import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,23 +44,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ui.component.settingsScreen.BleDeviceSelectionDialog
+import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.viewmodel.LabControlViewModel
 import kotlinx.coroutines.launch
 
-@RequiresApi(Build.VERSION_CODES.S)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Suppress("MissingPermission")
 fun SettingsScreen(
-    viewModel: LabControlViewModel,  // ← Без значения по умолчанию
-    onBack: () -> Unit, onAddUser: () -> Unit = {}, modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: LabControlViewModel,
+    onBack: () -> Unit, onAddUser: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showDeviceDialog by remember { mutableStateOf(false) }
 
-    // 🔹 Лаунчер для запроса разрешений
+    // Лаунчер для запроса разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -97,22 +96,13 @@ fun SettingsScreen(
             onRefresh = { viewModel.startDeviceScan() })
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }, topBar = {
-        TopAppBar(title = { Text("Настройки") }, navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад"
-                )
-            }
-        }, actions = {
-            IconButton(onClick = onAddUser) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Добавить пользователя",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        })
+    Scaffold(snackbarHost = {
+        SnackbarHost(snackbarHostState) },
+        topBar = {
+            SettingsHeader(
+                onBack = onBack,
+                onAddUser = onAddUser
+            )
     }) { padding ->
         Column(
             modifier = modifier
@@ -122,19 +112,15 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🔹 Блок: выбранное BLE-устройство
+            // Блок: выбранное BLE-устройство
             Card(
                 modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Целевое BLE-устройство",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    //Spacer(modifier = Modifier.height(8.dp))
 
                     OutlinedTextField(
                         value = viewModel.selectedDeviceName ?: viewModel.selectedDeviceAddress
@@ -168,11 +154,11 @@ fun SettingsScreen(
                             val hasPermissions = viewModel.checkBlePermissions(context)
 
                             if (hasPermissions) {
-                                // ✅ Разрешения уже есть — запускаем сканирование
+                                // Разрешения уже есть — запускаем сканирование
                                 viewModel.startDeviceScan()
                                 showDeviceDialog = true
                             } else {
-                                // ❌ Запрашиваем разрешения
+                                //  Запрашиваем разрешения
                                 permissionLauncher.launch(
                                     arrayOf(
                                         Manifest.permission.BLUETOOTH_SCAN,
@@ -185,7 +171,7 @@ fun SettingsScreen(
                         )
                     ) {
                         Icon(
-                            Icons.Default.BluetoothSearching,
+                            Icons.AutoMirrored.Filled.BluetoothSearching,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )

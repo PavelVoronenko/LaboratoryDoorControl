@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.antago30.laboratory"
-        minSdk = 27
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"

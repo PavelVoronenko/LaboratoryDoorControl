@@ -9,7 +9,7 @@ import com.antago30.laboratory.viewmodel.LabControlViewModel
 
 @Composable
 fun LaboratoryApp(
-    viewModel: LabControlViewModel,  // ← Принимаем ViewModel
+    viewModel: LabControlViewModel,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -21,13 +21,13 @@ fun LaboratoryApp(
     ) {
         composable("lab_control") {
             LabControlScreen(
-                viewModel = viewModel,  // ← Передаём ViewModel
+                viewModel = viewModel,
                 onSettingsClick = { navController.navigate("settings") }
             )
         }
         composable("settings") {
             SettingsScreen(
-                viewModel = viewModel,  // ← Передаём ту же ViewModel
+                viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )
         }

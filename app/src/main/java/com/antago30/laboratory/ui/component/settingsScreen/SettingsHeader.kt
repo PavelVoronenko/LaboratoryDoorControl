@@ -18,11 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -36,6 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsHeader(
     onBack: () -> Unit,
+    onAddUser: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -90,7 +88,7 @@ fun SettingsHeader(
                     delay(150)
                     addUserScale = 1f
                 }
-                //onBack()
+                //onAddUser()
             },
             modifier = Modifier.scale(animatedAddUserScale)
         ) {

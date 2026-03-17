@@ -1,6 +1,7 @@
 package com.antago30.laboratory.ble
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
@@ -9,22 +10,20 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.RequiresPermission
+import com.antago30.laboratory.model.BleDevice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import android.bluetooth.BluetoothManager
 
-data class BleDevice(
-    val name: String?,
-    val address: String,
-    val rssi: Int,
-    val timestamp: Long = System.currentTimeMillis()
-) {
-    val displayName: String get() = name ?: "Unknown ($address)"
-}
 
-class BleScanner(private val context: Context) {
 
-    private val bluetoothAdapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+class BleScanner(private val context: Context?) {
+
+    private val bluetoothAdapter: BluetoothAdapter? by lazy {
+        val bluetoothManager = context?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        bluetoothManager?.adapter
+    }
     private val _scanResults = MutableStateFlow<List<BleDevice>>(emptyList())
     val scanResults: StateFlow<List<BleDevice>> = _scanResults.asStateFlow()
 
@@ -51,11 +50,11 @@ class BleScanner(private val context: Context) {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startScan(durationMs: Long = 10_000) {
-        if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) return
+        if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) return
 
         _scanResults.value = emptyList() // Очистка перед сканированием
 
-        val scanner = bluetoothAdapter.bluetoothLeScanner ?: return
+        val scanner = bluetoothAdapter!!.bluetoothLeScanner ?: return
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
@@ -78,8 +77,7 @@ class BleScanner(private val context: Context) {
         }
     }
 
-    fun checkPermissions(): Boolean {
-        // Для Android 12+ нужны отдельные разрешения
+    /*fun checkPermissions(): Boolean {
         return true // Проверку вынесем в ViewModel
-    }
+    }*/
 }

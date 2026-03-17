@@ -5,17 +5,16 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleAdvertisingService
-import com.antago30.laboratory.ble.BleDevice
 import com.antago30.laboratory.ble.BleScanner
+import com.antago30.laboratory.model.BleDevice
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
 import com.antago30.laboratory.util.SettingsRepository
@@ -23,15 +22,14 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class LabControlViewModel(
-    private val context: Context,
     private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
 
-    // 🔹 BLE Scanner
-    private val bleScanner = BleScanner(context)
+    // LE Scanner
+    private var bleScanner: BleScanner? = null
     private var scanJob: Job? = null
 
-    // 🔹 Состояние для выбора BLE-устройства (настройки)
+    // Состояние для выбора BLE-устройства (настройки)
     var selectedDeviceName by mutableStateOf<String?>(null)
         private set
     var selectedDeviceAddress by mutableStateOf<String?>(null)
@@ -41,43 +39,45 @@ class LabControlViewModel(
     var availableDevices by mutableStateOf<List<BleDevice>>(emptyList())
         private set
 
-    //Инициализация: загружаем сохранённое устройство
+    // Инициализация: загружаем сохранённое устройство
     init {
         loadSavedDevice()
     }
 
-    //Загрузка сохранённого устройства из SharedPreferences
+    // Загрузка сохранённого устройства из SharedPreferences
     private fun loadSavedDevice() {
         val device = settingsRepo.getSelectedDevice()
         selectedDeviceName = device?.first
         selectedDeviceAddress = device?.second
     }
 
-    //апуск сканирования BLE-устройств
+    // Запуск сканирования BLE-устройств
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startDeviceScan() {
+        val scanner = bleScanner ?: return
         isScanning = true
         availableDevices = emptyList()
 
-        bleScanner.startScan(durationMs = 15_000)
+        scanner.startScan(durationMs = 15_000)
 
         scanJob?.cancel()
         scanJob = viewModelScope.launch {
-            bleScanner.scanResults.collect { devices ->
+            scanner.scanResults.collect { devices ->
                 availableDevices = devices
             }
         }
     }
 
-    // 🔹 Остановка сканирования
+    // Остановка сканирования
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun stopDeviceScan() {
+        val scanner = bleScanner ?: return
         isScanning = false
-        bleScanner.stopScan()
+        scanner.stopScan()
         scanJob?.cancel()
     }
 
-    // 🔹 Выбор устройства из списка
+    // Выбор устройства из списка
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun selectDevice(device: BleDevice) {
         selectedDeviceName = device.name
@@ -90,38 +90,24 @@ class LabControlViewModel(
         stopDeviceScan()
     }
 
-    // 🔹 Очистка выбранного устройства
+    // Очистка выбранного устройства
     fun clearSelectedDevice() {
         selectedDeviceName = null
         selectedDeviceAddress = null
         settingsRepo.clearSelectedDevice()
     }
 
-    // 🔹 Проверка разрешений Bluetooth (для Android 12+)
     fun checkBlePermissions(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val connect = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_CONNECT
-            ) == PackageManager.PERMISSION_GRANTED
-            val scan = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH_SCAN
-            ) == PackageManager.PERMISSION_GRANTED
-            connect && scan
-        } else {
-            // Для Android 11 и ниже
-            val bluetooth = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.BLUETOOTH
-            ) == PackageManager.PERMISSION_GRANTED
-            val location = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-            bluetooth && location
-        }
-    }
+        val connectGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.BLUETOOTH_CONNECT
+        ) == PackageManager.PERMISSION_GRANTED
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔹 Существующая логика приложения
-    // ─────────────────────────────────────────────────────────────
+        val scanGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.BLUETOOTH_SCAN
+        ) == PackageManager.PERMISSION_GRANTED
+
+        return connectGranted && scanGranted
+    }
 
     val staffList = mutableStateOf(
         listOf(
@@ -141,10 +127,10 @@ class LabControlViewModel(
 
     private var appContext: Context? = null
     private val _isServiceRunning = mutableStateOf(false)
-    val isServiceRunning: Boolean get() = _isServiceRunning.value
 
     fun setAppContext(context: Context) {
         appContext = context.applicationContext
+        bleScanner = BleScanner(appContext)
         syncServiceState()
     }
 

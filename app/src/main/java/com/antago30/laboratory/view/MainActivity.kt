@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
@@ -22,11 +21,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 Создаём репозиторий и фабрику
+        // Создаём репозиторий и фабрику
         val settingsRepo = SettingsRepository(applicationContext)
-        val factory = LabControlViewModelFactory(applicationContext, settingsRepo)
+        val factory = LabControlViewModelFactory(settingsRepo)
 
-        // 🔹 Получаем ViewModel через фабрику
+        // Получаем ViewModel через фабрику
         viewModel = ViewModelProvider(this, factory)[LabControlViewModel::class.java]
         viewModel.setAppContext(applicationContext)
 
@@ -37,7 +36,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     content = { padding ->
                         LaboratoryApp(
-                            viewModel = viewModel,  // ← Передаём ViewModel
+                            viewModel = viewModel,
                             modifier = Modifier.padding(padding)
                         )
                     }
