@@ -6,10 +6,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.antago30.laboratory.viewmodel.LabControlViewModel
+import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
 
 @Composable
 fun LaboratoryApp(
-    viewModel: LabControlViewModel,
+    labControlViewModel: LabControlViewModel,
+    settingsScreenViewModel: SettingsScreenViewModel,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -21,13 +23,13 @@ fun LaboratoryApp(
     ) {
         composable("lab_control") {
             LabControlScreen(
-                viewModel = viewModel,
+                viewModel = labControlViewModel,
                 onSettingsClick = { navController.navigate("settings") }
             )
         }
         composable("settings") {
             SettingsScreen(
-                viewModel = viewModel,
+                viewModel = settingsScreenViewModel,
                 onBack = { navController.popBackStack() }
             )
         }

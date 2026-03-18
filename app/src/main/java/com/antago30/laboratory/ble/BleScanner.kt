@@ -16,8 +16,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import android.bluetooth.BluetoothManager
 
-
-
 class BleScanner(private val context: Context?) {
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
@@ -76,8 +74,4 @@ class BleScanner(private val context: Context?) {
             // Игнорируем ошибки при остановке
         }
     }
-
-    /*fun checkPermissions(): Boolean {
-        return true // Проверку вынесем в ViewModel
-    }*/
 }
