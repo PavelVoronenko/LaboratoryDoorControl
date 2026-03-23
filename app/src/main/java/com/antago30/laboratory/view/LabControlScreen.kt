@@ -1,16 +1,25 @@
 package com.antago30.laboratory.view
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
 import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
@@ -26,6 +35,19 @@ fun LabControlScreen(
     val context = LocalContext.current
     val staffList by viewModel.staffList
     val functions by viewModel.functions
+    val isEnabled by viewModel.isInterfaceEnabled.collectAsState()
+
+    // Лаунчер для запроса BLUETOOTH_ADVERTISE
+    val advertisePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.startBleAdvertising()
+        } else {
+            // Разрешение не получено - можно показать сообщение
+            // viewModel._uiEvents.emit(UiEvent.showError("BLUETOOTH_ADVERTISE permission denied"))
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.setAppContext(context)
@@ -36,6 +58,8 @@ fun LabControlScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .alpha(if (isEnabled) 1f else 0.5f) // Затемнение до 50%
+            .clickable(enabled = !isEnabled) { } // Блокировка кликов по всему экрану
     ) {
         val (topBar, staffPanel, functionsPanel, actionButton) = createRefs()
 
@@ -60,6 +84,13 @@ fun LabControlScreen(
                 end.linkTo(parent.end)
                 width = Dimension.fillToConstraints
             }
+                .pointerInput(isEnabled) {
+                    if (!isEnabled) {
+                        awaitPointerEventScope {
+                            while (true) awaitPointerEvent()
+                        }
+                    }
+                }
         )
 
         FunctionsPanel(
@@ -72,7 +103,14 @@ fun LabControlScreen(
                     viewModel.toggleFunction(id)
 
                     if (nowEnabled) {
-                        viewModel.startBleAdvertising()
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.BLUETOOTH_ADVERTISE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            viewModel.startBleAdvertising()
+                        } else {
+                            advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
+                        }
                     } else {
                         viewModel.stopBleAdvertising()
                     }
@@ -99,5 +137,19 @@ fun LabControlScreen(
                 width = Dimension.fillToConstraints
             }
         )
+
+        if (!isEnabled) {
+            val (statusText) = createRefs()
+
+            Text(
+                text = "Ожидание подключения...",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.constrainAs(statusText) {
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    bottom.linkTo(actionButton.top, margin = 8.dp)
+                }
+            )
+        }
     }
 }

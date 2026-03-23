@@ -1,10 +1,12 @@
-package com.antago30.laboratory.view
+package com.antago30.laboratory
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.antago30.laboratory.view.LabControlScreen
+import com.antago30.laboratory.view.SettingsScreen
 import com.antago30.laboratory.viewmodel.LabControlViewModel
 import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
 
@@ -12,7 +14,7 @@ import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
 fun LaboratoryApp(
     labControlViewModel: LabControlViewModel,
     settingsScreenViewModel: SettingsScreenViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
 

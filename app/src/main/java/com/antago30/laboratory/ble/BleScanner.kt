@@ -50,7 +50,7 @@ class BleScanner(private val context: Context?) {
     fun startScan(durationMs: Long = 10_000) {
         if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) return
 
-        _scanResults.value = emptyList() // Очистка перед сканированием
+        _scanResults.value = emptyList()
 
         val scanner = bluetoothAdapter!!.bluetoothLeScanner ?: return
         val settings = ScanSettings.Builder()

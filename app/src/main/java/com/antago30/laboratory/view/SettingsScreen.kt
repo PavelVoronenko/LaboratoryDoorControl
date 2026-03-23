@@ -51,7 +51,7 @@ fun SettingsScreen(
     onBack: () -> Unit, onAddUser: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackBarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showDeviceDialog by remember { mutableStateOf(false) }
 
@@ -67,14 +67,14 @@ fun SettingsScreen(
             showDeviceDialog = true
         } else {
             coroutineScope.launch {
-                snackbarHostState.showSnackbar(
+                snackBarHostState.showSnackbar(
                     "Разрешения Bluetooth не предоставлены. Проверьте настройки приложения."
                 )
             }
         }
     }
 
-    //Диалог выбора BLE-устройства
+    // Диалог выбора BLE-устройства
     if (showDeviceDialog) {
         BleDeviceSelectionDialog(
             devices = viewModel.availableDevices,
@@ -91,7 +91,7 @@ fun SettingsScreen(
     }
 
     Scaffold(snackbarHost = {
-        SnackbarHost(snackbarHostState) },
+        SnackbarHost(snackBarHostState) },
         topBar = {
             SettingsHeader(
                 onBack = onBack,
@@ -145,7 +145,6 @@ fun SettingsScreen(
 
                         IconButton(
                             onClick = {
-                                // Проверяем разрешения
                                 val hasPermissions = viewModel.checkBlePermissions(context)
 
                                 if (hasPermissions) {
@@ -163,16 +162,16 @@ fun SettingsScreen(
                                 }
                             },
                             modifier = Modifier
-                                .size(48.dp), // <-- Размер кнопки
+                                .size(48.dp),
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary // <-- Цвет иконки
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.BluetoothSearching,
-                                contentDescription = "Выбрать устройство", // <-- Обновите contentDescription
-                                modifier = Modifier.size(24.dp) // <-- Размер иконки внутри кнопки
+                                contentDescription = "Выбрать устройство",
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }

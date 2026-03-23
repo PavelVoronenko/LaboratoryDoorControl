@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("lab_settings", Context.MODE_PRIVATE)
@@ -25,6 +25,11 @@ class SettingsRepository(private val context: Context) {
         val name = prefs.getString(SELECTED_DEVICE_NAME, null)
         val address = prefs.getString(SELECTED_DEVICE_ADDRESS, null)
         return if (name != null && address != null) name to address else null
+    }
+
+    fun getSelectedDeviceAddress(): String? {
+        val address = prefs.getString(SELECTED_DEVICE_ADDRESS, null)
+        return address
     }
 
     fun clearSelectedDevice() {

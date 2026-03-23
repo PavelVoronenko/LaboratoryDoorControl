@@ -1,6 +1,7 @@
 package com.antago30.laboratory.viewmodel
 
 import android.Manifest
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.annotation.RequiresPermission
@@ -10,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ble.BleScanner
 import com.antago30.laboratory.model.BleDevice
 import com.antago30.laboratory.util.SettingsRepository
@@ -19,12 +21,13 @@ import kotlinx.coroutines.launch
 
 class SettingsScreenViewModel(
     private val settingsRepo: SettingsRepository,
+    private val connectionManager: BleConnectionManager
 ) : ViewModel() {
     private var appContext: Context? = null
     // LE Scanner
     private var bleScanner: BleScanner? = null
     private var scanJob: Job? = null
-    private var scanStopTimerJob: Job? = null // <-- Добавим отдельный Job для таймера
+    private var scanStopTimerJob: Job? = null
 
     // Состояние для выбора BLE-устройства (настройки)
     var selectedDeviceName by mutableStateOf<String?>(null)
@@ -50,10 +53,9 @@ class SettingsScreenViewModel(
 
     // Запуск сканирования BLE-устройств
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    fun startDeviceScan(durationMs: Long = 10_000) { // <-- Сделаем длительность параметром
+    fun startDeviceScan(durationMs: Long = 10_000) {
         val scanner = bleScanner ?: return
 
-        // Отменяем предыдущие задачи, если они были
         scanJob?.cancel()
         scanStopTimerJob?.cancel()
 
@@ -73,11 +75,11 @@ class SettingsScreenViewModel(
         scanStopTimerJob = viewModelScope.launch {
             delay(durationMs) // Ждём указанное время
             // После задержки останавливаем сканирование
-            stopDeviceScanInternal() // Вызываем внутренний метод
+            stopDeviceScanInternal()
         }
     }
 
-    // Остановка сканирования (публичный метод)
+    // Остановка сканирования
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun stopDeviceScan() {
         stopDeviceScanInternal()
@@ -87,7 +89,7 @@ class SettingsScreenViewModel(
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     private fun stopDeviceScanInternal() {
         val scanner = bleScanner ?: return
-        isScanning = false // <-- Устанавливаем isScanning в false
+        isScanning = false
         scanner.stopScan()
         scanJob?.cancel()
         scanStopTimerJob?.cancel()
@@ -103,7 +105,16 @@ class SettingsScreenViewModel(
             deviceAddress = device.address,
             deviceName = device.name ?: "Unknown"
         )
-        stopDeviceScan() // <-- Останавливаем сканирование при выборе
+
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        val nativeDevice = adapter?.getRemoteDevice(device.address)
+
+        nativeDevice?.let {
+            // Проверка разрешений внутри connect()
+            connectionManager.connect(it, autoConnect = false)
+        }
+
+        stopDeviceScan()
     }
 
     // Очистка выбранного устройства
@@ -133,6 +144,6 @@ class SettingsScreenViewModel(
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     override fun onCleared() {
         super.onCleared()
-        stopDeviceScanInternal() // <-- Используем внутренний метод
+        stopDeviceScanInternal()
     }
 }

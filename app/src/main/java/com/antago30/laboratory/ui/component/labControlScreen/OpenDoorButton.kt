@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OpenDoorButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     var scale by remember { mutableFloatStateOf(1f) }

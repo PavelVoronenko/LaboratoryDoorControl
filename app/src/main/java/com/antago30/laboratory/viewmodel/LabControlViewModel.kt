@@ -1,20 +1,82 @@
 package com.antago30.laboratory.viewmodel
 
 import android.app.ActivityManager
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleAdvertisingService
+import com.antago30.laboratory.ble.BleConnectionManager
+import com.antago30.laboratory.ble.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.util.SettingsRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class LabControlViewModel : ViewModel() {
+class LabControlViewModel(
+    private val settingsRepo: SettingsRepository,
+    private val connectionManager: BleConnectionManager,
+) : ViewModel() {
+
+    private val _uiEvents = MutableSharedFlow<UiEvent>()
+
+    val isInterfaceEnabled: StateFlow<Boolean> =
+        connectionManager.connectionState
+            .map { state ->
+                val enabled = state == ConnectionState.CONNECTED
+                android.util.Log.d("BLE_DEBUG", "ViewModel: connectionState=$state → isInterfaceEnabled=$enabled")
+                enabled
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    init {
+        attemptAutoConnect()
+
+        viewModelScope.launch {
+            connectionManager.connectionState.collect { state ->
+                android.util.Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
+            }
+        }
+    }
+
+    private fun attemptAutoConnect() {
+        val savedAddress = settingsRepo.getSelectedDeviceAddress() ?: return
+        val device = BluetoothAdapter.getDefaultAdapter()?.getRemoteDevice(savedAddress) ?: return
+
+        when (val result = connectionManager.connect(device, autoConnect = false)) {
+            is BleConnectionManager.ConnectResult.PermissionDenied -> {
+                viewModelScope.launch {
+                    _uiEvents.emit(UiEvent.RequestBlePermissions)
+                }
+            }
+            is BleConnectionManager.ConnectResult.Error -> {
+                viewModelScope.launch {
+                    _uiEvents.emit(UiEvent.ShowError(result.message))
+                }
+            }
+            is BleConnectionManager.ConnectResult.Connecting -> {
+                // Всё ок, ждём ConnectionState.CONNECTED
+            }
+        }
+    }
+
+    // События для UI
+    sealed class UiEvent {
+        object RequestBlePermissions : UiEvent()
+        data class ShowError(val message: String) : UiEvent()
+    }
 
     val staffList = mutableStateOf(
         listOf(
-            StaffMember("1", "ВВ", "Владимир Викторович", true),
-            StaffMember("2", "ВО", "Вячеслав Олегович", false),
+            StaffMember("1", "ВВ", "Владимир Викторович", false),
+            StaffMember("2", "ВО", "Вячеслав Олегович", true),
             StaffMember("3", "ПЕ", "Павел Евгеньевич", true),
         )
     )
@@ -92,6 +154,7 @@ class LabControlViewModel : ViewModel() {
     val isAdvertising: Boolean get() = _isServiceRunning.value
 
     fun onOpenDoorClicked() {
-        // TODO: Реализовать логику открытия двери
+        if (connectionManager.connectionState.value != ConnectionState.CONNECTED) return
+        connectionManager.sendDoorCommand()
     }
 }

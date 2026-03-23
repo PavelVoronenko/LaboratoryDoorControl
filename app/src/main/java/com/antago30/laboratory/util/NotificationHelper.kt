@@ -9,29 +9,42 @@ import androidx.core.app.NotificationCompat
 import com.antago30.laboratory.R
 
 object NotificationHelper {
-
-    const val CHANNEL_ID = "ble_advertising_channel"
-    const val NOTIFICATION_ID = 101
+    const val NOTIFICATION_ID = 1001
+    private const val CHANNEL_ID = "ble_advertising_channel"
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "BLE",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "BLE"
+            try {
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "BLE Advertising",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Background BLE advertising"
+                    lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                }
+                val manager = context.getSystemService(NotificationManager::class.java)
+                manager?.createNotificationChannel(channel)
+            } catch (e: Exception) {
+
             }
-            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
         }
     }
 
     fun createNotification(context: Context): Notification {
-        return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentText(context.getString(R.string.startAdvertising))
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setOngoing(true)
-            .build()
+        return try {
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setContentTitle("BLE Advertising")
+                .setContentText("Broadcasting...")
+                .setSmallIcon(R.drawable.advertise)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .build()
+        } catch (e: Exception) {
+            Notification.Builder(context)
+                .setContentTitle("Service")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .build()
+        }
     }
 }

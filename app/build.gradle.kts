@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "com.antago30.laboratory"
-        minSdk = 31
+        minSdk = 33
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -64,15 +64,16 @@ dependencies {
     implementation(libs.androidx.compose.ui.test)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.compose.material)
+    implementation(libs.identity.jvm)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.constraintlayout.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
-    implementation("androidx.navigation:navigation-compose:2.9.7")
-    implementation("androidx.compose.material:material-icons-extended:1.7.0")
 }
