@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun StaffItem(
     member: StaffMember,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -51,13 +53,22 @@ fun StaffItem(
     val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
     Card(
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg.copy(alpha = 0.55f)),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.06f))
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) {
+                CardBg.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) Primary.copy(alpha = 0.1f) else Primary.copy(alpha = 0.05f)
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable {
+                .clickable (enabled = enabled){
                     scale = 0.96f
                     scope.launch {
                         delay(200)

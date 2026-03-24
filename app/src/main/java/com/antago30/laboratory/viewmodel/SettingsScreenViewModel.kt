@@ -1,7 +1,7 @@
 package com.antago30.laboratory.viewmodel
 
 import android.Manifest
-import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.annotation.RequiresPermission
@@ -106,15 +106,28 @@ class SettingsScreenViewModel(
             deviceName = device.name ?: "Unknown"
         )
 
-        val adapter = BluetoothAdapter.getDefaultAdapter()
-        val nativeDevice = adapter?.getRemoteDevice(device.address)
+        val bluetoothManager = appContext?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val nativeDevice =  bluetoothManager?.adapter?.getRemoteDevice(device.address)
 
         nativeDevice?.let {
-            // Проверка разрешений внутри connect()
-            connectionManager.connect(it, autoConnect = false)
+            try {
+                if (checkBlePermissionsForConnect(appContext!!)) {
+                    connectionManager.connect(it, autoConnect = false)
+                } else {
+                    // Обработка отсутствия разрешения
+                }
+            } catch (e: SecurityException) {
+                android.util.Log.e("SettingsScreenViewModel", "Security exception during connect: ${e.message}")
+            }
         }
 
         stopDeviceScan()
+    }
+
+    private fun checkBlePermissionsForConnect(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context, Manifest.permission.BLUETOOTH_CONNECT
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     // Очистка выбранного устройства

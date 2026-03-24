@@ -80,20 +80,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        connectionManager.attemptReconnect()
     }
 
     override fun onPause() {
         super.onPause()
-        appScope.cancel()
-        ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
-        connectionManager.disconnect()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         appScope.cancel()
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
-        connectionManager.disconnect()
     }
 }

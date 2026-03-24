@@ -4,7 +4,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.antago30.laboratory.R
 
@@ -13,38 +12,30 @@ object NotificationHelper {
     private const val CHANNEL_ID = "ble_advertising_channel"
 
     fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    "BLE Advertising",
-                    NotificationManager.IMPORTANCE_LOW
-                ).apply {
-                    description = "Background BLE advertising"
-                    lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-                }
-                val manager = context.getSystemService(NotificationManager::class.java)
-                manager?.createNotificationChannel(channel)
-            } catch (e: Exception) {
-
+        try {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "BLE Advertising",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Background BLE advertising"
+                lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             }
+            val manager = context.getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
+        } catch (e: Exception) {
+
         }
     }
 
     fun createNotification(context: Context): Notification {
-        return try {
-            NotificationCompat.Builder(context, CHANNEL_ID)
-                .setContentTitle("BLE Advertising")
-                .setContentText("Broadcasting...")
-                .setSmallIcon(R.drawable.advertise)
-                .setOngoing(true)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .build()
-        } catch (e: Exception) {
-            Notification.Builder(context)
-                .setContentTitle("Service")
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .build()
-        }
+        return NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle("BLE Advertising")
+            .setContentText("Broadcasting...")
+            .setSmallIcon(R.drawable.advertise)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .build()
     }
 }

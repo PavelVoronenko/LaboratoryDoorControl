@@ -1,15 +1,17 @@
 package com.antago30.laboratory.viewmodel
 
+import android.Manifest
 import android.app.ActivityManager
-import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.content.Intent
+import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleAdvertisingService
 import com.antago30.laboratory.ble.BleConnectionManager
-import com.antago30.laboratory.ble.ConnectionState
+import com.antago30.laboratory.ble.bleConnectionManager.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
 import com.antago30.laboratory.util.SettingsRepository
@@ -28,41 +30,18 @@ class LabControlViewModel(
     private val _uiEvents = MutableSharedFlow<UiEvent>()
 
     val isInterfaceEnabled: StateFlow<Boolean> =
-        connectionManager.connectionState
+        connectionManager.connectionStateFlow
             .map { state ->
-                val enabled = state == ConnectionState.CONNECTED
-                android.util.Log.d("BLE_DEBUG", "ViewModel: connectionState=$state → isInterfaceEnabled=$enabled")
+                val enabled = state == ConnectionState.READY
+                Log.d("BLE_DEBUG", "ViewModel: connectionState=$state → isInterfaceEnabled=$enabled")
                 enabled
             }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     init {
-        attemptAutoConnect()
-
         viewModelScope.launch {
-            connectionManager.connectionState.collect { state ->
-                android.util.Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
-            }
-        }
-    }
-
-    private fun attemptAutoConnect() {
-        val savedAddress = settingsRepo.getSelectedDeviceAddress() ?: return
-        val device = BluetoothAdapter.getDefaultAdapter()?.getRemoteDevice(savedAddress) ?: return
-
-        when (val result = connectionManager.connect(device, autoConnect = false)) {
-            is BleConnectionManager.ConnectResult.PermissionDenied -> {
-                viewModelScope.launch {
-                    _uiEvents.emit(UiEvent.RequestBlePermissions)
-                }
-            }
-            is BleConnectionManager.ConnectResult.Error -> {
-                viewModelScope.launch {
-                    _uiEvents.emit(UiEvent.ShowError(result.message))
-                }
-            }
-            is BleConnectionManager.ConnectResult.Connecting -> {
-                // Всё ок, ждём ConnectionState.CONNECTED
+            connectionManager.connectionStateFlow.collect { state ->
+                Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
             }
         }
     }
@@ -120,10 +99,23 @@ class LabControlViewModel(
         functions.value = functions.value.map { func ->
             if (func.id == id) {
                 val newEnabled = !func.isEnabled
-                if (id == "broadcast") {
-                    if (newEnabled) startBleAdvertising()
-                    else stopBleAdvertising()
+
+                when (id) {
+                    "broadcast" -> {
+                        // Логика для рекламы (без изменений)
+                        if (newEnabled) startBleAdvertising()
+                        else stopBleAdvertising()
+                    }
+                    "lighting" -> {
+                        // Логика для освещения
+                        @Suppress("MissingPermission")
+                        if (connectionManager.connectionStateFlow.value == ConnectionState.READY) {
+                            val command = if (newEnabled) "LIGHTON" else "LIGHTOFF"
+                            connectionManager.sendCommand(command)
+                        }
+                    }
                 }
+
                 func.copy(isEnabled = newEnabled)
             } else func
         }
@@ -153,8 +145,9 @@ class LabControlViewModel(
 
     val isAdvertising: Boolean get() = _isServiceRunning.value
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun onOpenDoorClicked() {
-        if (connectionManager.connectionState.value != ConnectionState.CONNECTED) return
-        connectionManager.sendDoorCommand()
+        if (connectionManager.connectionStateFlow.value != ConnectionState.READY) return
+        connectionManager.sendCommand("OPENDOOR")
     }
 }

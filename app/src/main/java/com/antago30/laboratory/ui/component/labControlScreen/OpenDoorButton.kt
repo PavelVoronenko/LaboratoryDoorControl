@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,10 +36,14 @@ import kotlinx.coroutines.launch
 fun OpenDoorButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     val scope = rememberCoroutineScope()
     var scale by remember { mutableFloatStateOf(1f) }
-    val animatedScale by animateFloatAsState(targetValue = scale, label = "openDoorScale")
+    val animatedScale by animateFloatAsState(
+        targetValue = if (enabled) scale else 0.98f,
+        label = "openDoorScale"
+    )
 
     Card(
         modifier = modifier
@@ -46,21 +51,31 @@ fun OpenDoorButton(
             .clip(RoundedCornerShape(24.dp))
             .scale(animatedScale),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg.copy(alpha = 0.6f)),
-        //elevation = CardDefaults.cardElevation(defaultElevation = 40.dp),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.1f))
+        colors = CardDefaults.cardColors(
+            containerColor = if (enabled) {
+                CardBg.copy(alpha = 0.6f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            }
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (enabled) Primary.copy(alpha = 0.1f) else Primary.copy(alpha = 0.05f)
+        )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
-                .clickable {
-                    scale = 0.95f
-                    scope.launch {
-                        delay(200)
-                        scale = 1f
+                .clickable (enabled = enabled) {
+                    if (enabled) {
+                        scale = 0.95f
+                        scope.launch {
+                            delay(200)
+                            scale = 1f
+                        }
+                        onClick()
                     }
-                    onClick()
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -68,7 +83,7 @@ fun OpenDoorButton(
                 text = stringResource(id = R.string.openDoor),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Primary,
+                color = if (enabled) Primary else Primary.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center
             )
         }

@@ -30,13 +30,14 @@ import kotlin.collections.forEach
 fun StaffPanel(
     staffList: List<StaffMember>,
     onStaffClicked: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = CardBg.copy(alpha = 0.55f)),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.06f))
+        border = BorderStroke(1.dp, Primary.copy(alpha = 0.06f)),
     ) {
         Row(
             modifier = Modifier
@@ -57,6 +58,7 @@ fun StaffPanel(
             staffList.forEach { member ->
                 StaffItem(
                     member = member,
+                    enabled = enabled,
                     onClick = { onStaffClicked(member.id) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
