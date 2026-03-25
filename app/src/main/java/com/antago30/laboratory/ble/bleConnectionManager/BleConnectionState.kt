@@ -1,12 +1,9 @@
 package com.antago30.laboratory.ble.bleConnectionManager
 
+import com.antago30.laboratory.model.ConnectionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-enum class ConnectionState {
-    DISCONNECTED, CONNECTING, CONNECTED, SERVICES_DISCOVERING, READY, DISCONNECTING
-}
 
 class BleConnectionState {
     private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)

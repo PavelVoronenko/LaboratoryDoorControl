@@ -19,6 +19,7 @@ import androidx.constraintlayout.compose.Dimension
 import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
 import com.antago30.laboratory.ui.component.labControlScreen.LoadingIndicatorComponent
 import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
+import com.antago30.laboratory.ui.component.labControlScreen.SensorDataPanel
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
 import com.antago30.laboratory.ui.component.labControlScreen.TopBar
 import com.antago30.laboratory.viewmodel.LabControlViewModel
@@ -34,6 +35,9 @@ fun LabControlScreen(
     val staffList by viewModel.staffList
     val functions by viewModel.functions
     val isEnabled by viewModel.isInterfaceEnabled.collectAsState()
+
+    val sensorData1 by viewModel.systemMessageData.collectAsState()
+    val sensorData2 by viewModel.terminalData.collectAsState()
 
     // Лаунчер для запроса BLUETOOTH_ADVERTISE
     val advertisePermissionLauncher = rememberLauncherForActivityResult(
@@ -56,7 +60,7 @@ fun LabControlScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        val (topBar, staffPanel, functionsPanel, actionButton) = createRefs()
+        val (topBar, staffPanel, sensorPanel, functionsPanel, actionButton) = createRefs()
 
         TopBar(
             isBroadcasting = viewModel.isAdvertising,
@@ -90,6 +94,21 @@ fun LabControlScreen(
                     width = Dimension.fillToConstraints
                 },
                 size = 256f
+            )
+        }
+
+        if (isEnabled) {
+            SensorDataPanel(
+                label1 = "SystemMessageChar",
+                value1 = sensorData1,
+                label2 = "TerminalChar",
+                value2 = sensorData2,
+                modifier = Modifier.constrainAs(sensorPanel) {
+                    top.linkTo(functionsPanel.bottom, margin = 12.dp)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                    width = Dimension.fillToConstraints
+                }
             )
         }
 

@@ -11,13 +11,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleAdvertisingService
 import com.antago30.laboratory.ble.BleConnectionManager
-import com.antago30.laboratory.ble.bleConnectionManager.ConnectionState
+import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -37,14 +39,6 @@ class LabControlViewModel(
                 enabled
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, false)
-
-    init {
-        viewModelScope.launch {
-            connectionManager.connectionStateFlow.collect { state ->
-                Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
-            }
-        }
-    }
 
     // События для UI
     sealed class UiEvent {
@@ -69,6 +63,48 @@ class LabControlViewModel(
 
     private var appContext: Context? = null
     private val _isServiceRunning = mutableStateOf(false)
+
+    private val _systemMessageData = MutableStateFlow("—")
+    private val _terminalData = MutableStateFlow("—")
+    val systemMessageData: StateFlow<String> = _systemMessageData.asStateFlow()
+    val terminalData: StateFlow<String> = _terminalData.asStateFlow()
+
+    init {
+        @Suppress("MissingPermission")
+        viewModelScope.launch {
+            connectionManager.connectionStateFlow.collect { state ->
+                Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
+
+                if (state == ConnectionState.READY) {
+                    connectionManager.requestMtu(200)
+                    connectionManager.subscribeToSensorData()
+                }
+            }
+        }
+
+        // Слушаем входящие данные
+        viewModelScope.launch {
+            connectionManager.characteristicData.collect { data ->
+                when (data.uuid) {
+                    BleConnectionManager.SYSTEM_MESSAGE_CHARACTERISTIC.toString() -> {
+                        _systemMessageData.value = formatSensorData(data.value)
+                    }
+                    BleConnectionManager.TERMINAL_CHARACTERISTIC.toString() -> {
+                        _terminalData.value = formatSensorData(data.value)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun formatSensorData(bytes: List<Byte>): String {
+        return try {
+            val string = String(bytes.toByteArray(), Charsets.UTF_8).trim()
+            string.ifEmpty { "—" }
+        } catch (e: Exception) {
+            bytes.joinToString(" ") { String.format("%02X", it) }
+        }
+    }
 
     fun setAppContext(context: Context) {
         appContext = context.applicationContext

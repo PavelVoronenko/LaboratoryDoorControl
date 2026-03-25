@@ -3,7 +3,10 @@ package com.antago30.laboratory.ble
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothStatusCodes
 import android.content.Context
 import android.os.Build
 import android.util.Log
@@ -12,7 +15,10 @@ import com.antago30.laboratory.ble.bleConnectionManager.BleCommandSender
 import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionHandler
 import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionState
 import com.antago30.laboratory.ble.bleConnectionManager.BleGattCallbackHandler
-import com.antago30.laboratory.ble.bleConnectionManager.ConnectionState
+import com.antago30.laboratory.model.CharacteristicData
+import com.antago30.laboratory.model.ConnectionState
+import com.antago30.laboratory.model.CommandResult
+import com.antago30.laboratory.model.ConnectResult
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -26,8 +32,11 @@ class BleConnectionManager(
 ) {
     // UUIDs
     companion object {
-        val DOOR_SERVICE_UUID: UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
-        val DOOR_COMMAND_CHARACTERISTIC_UUID: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
+        val SERVICE_UUID: UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
+        val SEND_COMMAND_CHARACTERISTIC: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
+
+        val SYSTEM_MESSAGE_CHARACTERISTIC: UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
+        val TERMINAL_CHARACTERISTIC: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
     }
 
     // Компоненты
@@ -39,13 +48,14 @@ class BleConnectionManager(
     private val connectionHandler = BleConnectionHandler(context, callbackHandler)
     private val commandSender = BleCommandSender(
         getGatt = { connectionHandler.getGatt() },
-        serviceUuid = DOOR_SERVICE_UUID,
-        characteristicUuid = DOOR_COMMAND_CHARACTERISTIC_UUID
+        serviceUuid = SERVICE_UUID,
+        characteristicUuid = SEND_COMMAND_CHARACTERISTIC
     )
 
     // Публичные API
     val connectionStateFlow: StateFlow<ConnectionState> = connectionState.state
-    val doorCommandResult: SharedFlow<BleGattCallbackHandler.CommandResult> = callbackHandler.commandResults
+    val doorCommandResult: SharedFlow<CommandResult> = callbackHandler.commandResults
+    val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): ConnectResult {
@@ -76,7 +86,8 @@ class BleConnectionManager(
         Log.d("BleConnectionManager", "Found saved address: $savedAddress")
 
         val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+            val bluetoothManager =
+                context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
             bluetoothManager?.adapter?.getRemoteDevice(savedAddress)
         } else {
             @Suppress("DEPRECATION")
@@ -86,15 +97,53 @@ class BleConnectionManager(
         Log.d("BleConnectionManager", "Got device object for $savedAddress")
 
         if (connectionState.current != ConnectionState.CONNECTED) {
-            Log.d("BleConnectionManager", "Current state is ${connectionState.current}, attempting to connect with autoConnect=true")
+            Log.d(
+                "BleConnectionManager",
+                "Current state is ${connectionState.current}, attempting to connect with autoConnect=true"
+            )
             connect(device, autoConnect = true)
         } else {
             Log.d("BleConnectionManager", "$savedAddress , skipping reconnect.")
         }
     }
 
-    sealed class ConnectResult {
-        object Connecting : ConnectResult()
-        data class Error(val message: String) : ConnectResult()
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun subscribeToCharacteristic(uuid: UUID): Boolean {
+        val gatt = connectionHandler.getGatt() ?: return false
+        val service = gatt.getService(SERVICE_UUID) ?: return false
+        val characteristic = service.getCharacteristic(uuid) ?: return false
+
+        if (!gatt.setCharacteristicNotification(characteristic, true)) {
+            return false
+        }
+
+        val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+        val descriptor = characteristic.getDescriptor(cccdUuid) ?: return false
+
+        // Определяем тип уведомления
+        val enableValue =
+            if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
+                BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+            } else if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0) {
+                BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+            } else {
+                return false
+            }
+
+        return gatt.writeDescriptor(descriptor, enableValue) == BluetoothStatusCodes.SUCCESS
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun subscribeToSensorData(): Boolean {
+        val systemMessageLog = subscribeToCharacteristic(SYSTEM_MESSAGE_CHARACTERISTIC)
+        val terminalLog = subscribeToCharacteristic(TERMINAL_CHARACTERISTIC)
+        return systemMessageLog && terminalLog
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun requestMtu(size: Int = 200): Boolean {
+        val gatt = connectionHandler.getGatt() ?: return false
+        Log.d("BLE_DEBUG", "📡 Requesting MTU: $size")
+        return gatt.requestMtu(size)
     }
 }
