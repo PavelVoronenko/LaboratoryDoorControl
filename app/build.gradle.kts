@@ -78,6 +78,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-
-    implementation("androidx.compose.material3:material3:1.5.0-alpha15")
+    implementation(libs.androidx.material3)
 }

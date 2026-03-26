@@ -1,10 +1,10 @@
-package com.antago30.laboratory.viewmodel.factory
+package com.antago30.laboratory.viewmodel.settingsScreenViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.util.SettingsRepository
-import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 
 class SettingsScreenViewModelFactory(
     private val settingsRepo: SettingsRepository,

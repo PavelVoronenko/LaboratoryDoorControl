@@ -7,8 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.antago30.laboratory.view.LabControlScreen
 import com.antago30.laboratory.view.SettingsScreen
-import com.antago30.laboratory.viewmodel.LabControlViewModel
-import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
+import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 
 @Composable
 fun LaboratoryApp(

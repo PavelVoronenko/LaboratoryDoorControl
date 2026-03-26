@@ -19,10 +19,9 @@ import androidx.constraintlayout.compose.Dimension
 import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
 import com.antago30.laboratory.ui.component.labControlScreen.LoadingIndicatorComponent
 import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
-import com.antago30.laboratory.ui.component.labControlScreen.SensorDataPanel
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
 import com.antago30.laboratory.ui.component.labControlScreen.TopBar
-import com.antago30.laboratory.viewmodel.LabControlViewModel
+import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -32,9 +31,11 @@ fun LabControlScreen(
     viewModel: LabControlViewModel,
 ) {
     val context = LocalContext.current
-    val staffList by viewModel.staffList
-    val functions by viewModel.functions
     val isEnabled by viewModel.isInterfaceEnabled.collectAsState()
+
+    val staffList by viewModel.staffList.collectAsState()
+    val functions by viewModel.functions.collectAsState()
+    val isAdvertising by viewModel.isAdvertising.collectAsState()
 
     val sensorData1 by viewModel.systemMessageData.collectAsState()
     val sensorData2 by viewModel.terminalData.collectAsState()
@@ -63,7 +64,7 @@ fun LabControlScreen(
         val (topBar, staffPanel, sensorPanel, functionsPanel, actionButton) = createRefs()
 
         TopBar(
-            isBroadcasting = viewModel.isAdvertising,
+            isBroadcasting = isAdvertising,
             onSettingsButtonClick = onSettingsClick,
             modifier = Modifier.constrainAs(topBar) {
                 top.linkTo(parent.top)
@@ -71,7 +72,7 @@ fun LabControlScreen(
                 end.linkTo(parent.end)
             }
         )
-
+        @Suppress("MissingPermission")
         if (isEnabled) {
             StaffPanel(
                 staffList = staffList,

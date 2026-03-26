@@ -1,13 +1,12 @@
-package com.antago30.laboratory.viewmodel
+package com.antago30.laboratory.viewmodel.settingsScreenViewModel
 
 import android.Manifest
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.annotation.RequiresPermission
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,6 +17,8 @@ import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class SettingsScreenViewModel(
     private val settingsRepo: SettingsRepository,
@@ -117,7 +118,7 @@ class SettingsScreenViewModel(
                     // Обработка отсутствия разрешения
                 }
             } catch (e: SecurityException) {
-                android.util.Log.e("SettingsScreenViewModel", "Security exception during connect: ${e.message}")
+                Log.e("SettingsScreenViewModel", "Security exception during connect: ${e.message}")
             }
         }
 

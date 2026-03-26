@@ -14,10 +14,10 @@ import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ui.theme.LaboratoryTheme
 import com.antago30.laboratory.util.SettingsRepository
-import com.antago30.laboratory.viewmodel.LabControlViewModel
-import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
-import com.antago30.laboratory.viewmodel.factory.LabControlViewModelFactory
-import com.antago30.laboratory.viewmodel.factory.SettingsScreenViewModelFactory
+import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
+import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModelFactory
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
 
         val labControlFactory = LabControlViewModelFactory(
-            settingsRepo = settingsRepo,
             connectionManager = connectionManager
         )
         labControlViewModel = ViewModelProvider(this, labControlFactory)[LabControlViewModel::class.java]

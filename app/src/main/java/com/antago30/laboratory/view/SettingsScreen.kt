@@ -39,7 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ui.component.settingsScreen.BleDeviceSelectionDialog
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
-import com.antago30.laboratory.viewmodel.SettingsScreenViewModel
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
