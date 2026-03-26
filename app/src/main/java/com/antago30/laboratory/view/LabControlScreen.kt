@@ -97,7 +97,7 @@ fun LabControlScreen(
             )
         }
 
-        if (isEnabled) {
+        /*if (isEnabled) {
             SensorDataPanel(
                 label1 = "SystemMessageChar",
                 value1 = sensorData1,
@@ -110,7 +110,7 @@ fun LabControlScreen(
                     width = Dimension.fillToConstraints
                 }
             )
-        }
+        }*/
 
         FunctionsPanel(
             functions = functions,

@@ -35,7 +35,10 @@ class LabControlViewModel(
         connectionManager.connectionStateFlow
             .map { state ->
                 val enabled = state == ConnectionState.READY
-                Log.d("BLE_DEBUG", "ViewModel: connectionState=$state → isInterfaceEnabled=$enabled")
+                Log.d(
+                    "BLE_DEBUG",
+                    "ViewModel: connectionState=$state → isInterfaceEnabled=$enabled"
+                )
                 enabled
             }
             .stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -48,9 +51,9 @@ class LabControlViewModel(
 
     val staffList = mutableStateOf(
         listOf(
-            StaffMember("1", "ВВ", "Владимир Викторович", false),
-            StaffMember("2", "ВО", "Вячеслав Олегович", true),
-            StaffMember("3", "ПЕ", "Павел Евгеньевич", true),
+            StaffMember("1", "ВВ", "Володя", false),
+            StaffMember("2", "ВО", "Слава", true),
+            StaffMember("3", "ПЕ", "Паша", true),
         )
     )
 
@@ -69,12 +72,16 @@ class LabControlViewModel(
     val systemMessageData: StateFlow<String> = _systemMessageData.asStateFlow()
     val terminalData: StateFlow<String> = _terminalData.asStateFlow()
 
+    // Время последнего изменения для каждого сотрудника
+    private val staffLastChangeTime = mutableMapOf<String, Long>()
+
+    // Время последнего изменения для освещения
+    private var lightLastChangeTime: Long = 0
+
     init {
         @Suppress("MissingPermission")
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
-                Log.d("BLE_DEBUG", "🔁 ViewModel COLLECT: $state")
-
                 if (state == ConnectionState.READY) {
                     connectionManager.requestMtu(200)
                     connectionManager.subscribeToSensorData()
@@ -87,22 +94,71 @@ class LabControlViewModel(
             connectionManager.characteristicData.collect { data ->
                 when (data.uuid) {
                     BleConnectionManager.SYSTEM_MESSAGE_CHARACTERISTIC.toString() -> {
-                        _systemMessageData.value = formatSensorData(data.value)
+                        _systemMessageData.value =
+                            String(data.value.toByteArray(), Charsets.UTF_8).trim()
+                        parseSystemMessage(_systemMessageData.value)
                     }
+
                     BleConnectionManager.TERMINAL_CHARACTERISTIC.toString() -> {
-                        _terminalData.value = formatSensorData(data.value)
+                        _terminalData.value =
+                            String(data.value.toByteArray(), Charsets.UTF_8).trim()
                     }
                 }
             }
         }
     }
 
-    private fun formatSensorData(bytes: List<Byte>): String {
-        return try {
-            val string = String(bytes.toByteArray(), Charsets.UTF_8).trim()
-            string.ifEmpty { "—" }
-        } catch (e: Exception) {
-            bytes.joinToString(" ") { String.format("%02X", it) }
+    // Функция парсинга сообщения от контроллера
+    private fun parseSystemMessage(message: String) {
+        val currentTime = System.currentTimeMillis()
+        val parts = message.split("|").filter { it.isNotBlank() }
+
+        for (part in parts) {
+            when {
+                // Обработка статуса освещения
+                part.startsWith("LIGHTSTATUS:") -> {
+                    val lightStatus = part.substringAfter("LIGHTSTATUS:").trim()
+                    val isLightOn = lightStatus == "1"
+
+                    // Проверяем, не меняли ли мы статус недавно (менее 1 секунд назад)
+                    if (currentTime - lightLastChangeTime < 1000) {
+                        Log.d("BLE_DEBUG", "⏭️ Ignoring light status (local change pending)")
+                        break // Пропускаем обновление
+                    }
+
+                    functions.value = functions.value.map { func ->
+                        if (func.id == "lighting") {
+                            func.copy(isEnabled = isLightOn)
+                        } else func
+                    }
+                    Log.d("BLE_DEBUG", "💡 Light status updated from controller: $isLightOn")
+                }
+
+                // Обработка статуса сотрудников
+                part.contains("-inside") || part.contains("-outside") -> {
+                    val (name, status) = part.split("-").let {
+                        it.first() to it.last()
+                    }
+                    val isInside = status == "inside"
+
+                    // Ищем сотрудника и проверяем время
+                    staffList.value = staffList.value.map { staff ->
+                        if (staff.name.contains(name, ignoreCase = true) ||
+                            staff.initials.equals(name, ignoreCase = true)
+                        ) {
+
+                            val lastChange = staffLastChangeTime[staff.id] ?: 0
+
+                            // Если локальное изменение было недавно — игнорируем от контроллера
+                            if (currentTime - lastChange < 1000) {
+                                staff // Не обновляем
+                            } else {
+                                staff.copy(isInside = isInside, lastUpdated = currentTime)
+                            }
+                        } else staff
+                    }
+                }
+            }
         }
     }
 
@@ -138,10 +194,11 @@ class LabControlViewModel(
 
                 when (id) {
                     "broadcast" -> {
-                        // Логика для рекламы (без изменений)
+                        // Логика для рекламы
                         if (newEnabled) startBleAdvertising()
                         else stopBleAdvertising()
                     }
+
                     "lighting" -> {
                         // Логика для освещения
                         @Suppress("MissingPermission")
@@ -158,9 +215,37 @@ class LabControlViewModel(
     }
 
     fun toggleStaffStatus(id: String) {
+        val currentTime = System.currentTimeMillis()
+
         staffList.value = staffList.value.map { staff ->
-            if (staff.id == id) staff.copy(isInside = !staff.isInside) else staff
+            if (staff.id == id) {
+                val newIsInside = !staff.isInside
+                val command = buildStaffCommand(staff.initials, newIsInside)
+
+                // Отправляем команду при подключении
+                @Suppress("MissingPermission")
+                if (connectionManager.connectionStateFlow.value == ConnectionState.READY) {
+                    connectionManager.sendCommand(command)
+                }
+
+                // Запоминаем время изменения
+                staffLastChangeTime[id] = currentTime
+                staff.copy(isInside = newIsInside, lastUpdated = currentTime)
+            } else staff
         }
+    }
+
+    // Функция для построения команды
+    private fun buildStaffCommand(nickname: String, isInside: Boolean): String {
+        val name = when (nickname.uppercase()) {
+            "ПЕ", "ПАША" -> "PASHA"
+            "ВО", "СЛАВА" -> "SLAVA"
+            "ВВ", "ВОЛОДЯ" -> "VOLODIA"
+            else -> return ""
+        }
+
+        val status = if (isInside) "INSIDE" else "OUTSIDE"
+        return "${name}${status}"
     }
 
     fun startBleAdvertising() {

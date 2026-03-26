@@ -4,5 +4,6 @@ data class StaffMember(
     val id: String,
     val initials: String,
     val name: String,
-    val isInside: Boolean
+    val isInside: Boolean,
+    val lastUpdated: Long = System.currentTimeMillis() // Метка времени обновления статуса
 )
