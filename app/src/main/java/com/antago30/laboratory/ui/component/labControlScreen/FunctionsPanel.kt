@@ -13,28 +13,37 @@ import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.ui.component.labControlScreen.model.ModeItem
 import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
-import kotlin.collections.forEach
 
 @Composable
 fun FunctionsPanel(
     functions: List<FunctionItem>,
     onFunctionToggled: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isConnectionEnabled: Boolean = true
 ) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg.copy(alpha = 0.55f)),
+        colors = CardDefaults.cardColors(
+            containerColor = CardBg.copy(alpha = 0.55f)
+        ),
         border = BorderStroke(1.dp, Primary.copy(alpha = 0.06f))
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
             functions.forEach { item ->
+                val isToggleEnabled = if (item.requiresConnection) {
+                    isConnectionEnabled
+                } else {
+                    true
+                }
+
                 ModeItem(
                     label = item.label,
                     checked = item.isEnabled,
                     onCheckedChange = {
                         onFunctionToggled(item.id)
-                    }
+                    },
+                    enabled = isToggleEnabled
                 )
             }
         }

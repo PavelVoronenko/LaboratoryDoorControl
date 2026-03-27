@@ -29,8 +29,8 @@ class LabControlViewModelFactory(
                     if (enabled) advertisingUseCase.start() else advertisingUseCase.stop()
                 },
                 initialFunctions = listOf(  // ← передаём начальные функции
-                    FunctionItem("broadcast", "📡 Вещание рекламы", false),
-                    FunctionItem("lighting", "💡 Освещение", false)
+                    FunctionItem("broadcast", "📡 Вещание рекламы", false, requiresConnection = false),
+                    FunctionItem("lighting", "💡 Освещение", false, requiresConnection = true)
                 )
             )
 

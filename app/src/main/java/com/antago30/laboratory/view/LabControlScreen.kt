@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,10 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.antago30.laboratory.ui.component.labControlScreen.FunctionsPanel
-import com.antago30.laboratory.ui.component.labControlScreen.LoadingIndicatorComponent
 import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
 import com.antago30.laboratory.ui.component.labControlScreen.TopBar
+import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -36,9 +38,6 @@ fun LabControlScreen(
     val staffList by viewModel.staffList.collectAsState()
     val functions by viewModel.functions.collectAsState()
     val isAdvertising by viewModel.isAdvertising.collectAsState()
-
-    val sensorData1 by viewModel.systemMessageData.collectAsState()
-    val sensorData2 by viewModel.terminalData.collectAsState()
 
     // Лаунчер для запроса BLUETOOTH_ADVERTISE
     val advertisePermissionLauncher = rememberLauncherForActivityResult(
@@ -61,7 +60,7 @@ fun LabControlScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        val (topBar, staffPanel, sensorPanel, functionsPanel, actionButton) = createRefs()
+        val (topBar, staffPanel, functionsPanel, loadingIndicator, openDoorButton) = createRefs()
 
         TopBar(
             isBroadcasting = isAdvertising,
@@ -72,46 +71,21 @@ fun LabControlScreen(
                 end.linkTo(parent.end)
             }
         )
-        @Suppress("MissingPermission")
-        if (isEnabled) {
-            StaffPanel(
-                staffList = staffList,
-                onStaffClicked = { id ->
-                    viewModel.toggleStaffStatus(id)
-                },
-                modifier = Modifier.constrainAs(staffPanel) {
-                    top.linkTo(topBar.bottom, margin = 4.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    width = Dimension.fillToConstraints
-                }
-            )
-        } else {
-            LoadingIndicatorComponent(
-                modifier = Modifier.constrainAs(staffPanel) {
-                    top.linkTo(topBar.bottom, margin = 4.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    width = Dimension.fillToConstraints
-                },
-                size = 256f
-            )
-        }
 
-        /*if (isEnabled) {
-            SensorDataPanel(
-                label1 = "SystemMessageChar",
-                value1 = sensorData1,
-                label2 = "TerminalChar",
-                value2 = sensorData2,
-                modifier = Modifier.constrainAs(sensorPanel) {
-                    top.linkTo(functionsPanel.bottom, margin = 12.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    width = Dimension.fillToConstraints
-                }
-            )
-        }*/
+        @Suppress("MissingPermission")
+        StaffPanel(
+            staffList = staffList,
+            enabled = isEnabled,
+            onStaffClicked = { id ->
+                viewModel.toggleStaffStatus(id)
+            },
+            modifier = Modifier.constrainAs(staffPanel) {
+                top.linkTo(topBar.bottom, margin = 4.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }
+        )
 
         FunctionsPanel(
             functions = functions,
@@ -138,6 +112,7 @@ fun LabControlScreen(
                     viewModel.toggleFunction(id)
                 }
             },
+            isConnectionEnabled = isEnabled,
             modifier = Modifier.constrainAs(functionsPanel) {
                 top.linkTo(staffPanel.bottom, margin = 12.dp)
                 start.linkTo(parent.start)
@@ -146,12 +121,27 @@ fun LabControlScreen(
             }
         )
 
+        if (!isEnabled) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(48.dp)
+                    .constrainAs(loadingIndicator) {
+                        bottom.linkTo(openDoorButton.top, margin = 16.dp)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
+                color = Primary,
+                trackColor = Primary.copy(alpha = 0.1f),
+                strokeWidth = 5.dp
+            )
+        }
+
         OpenDoorButton(
             onClick = {
                 viewModel.onOpenDoorClicked()
             },
             enabled = isEnabled,
-            modifier = Modifier.constrainAs(actionButton) {
+            modifier = Modifier.constrainAs(openDoorButton) {
                 bottom.linkTo(parent.bottom, margin = 32.dp)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)

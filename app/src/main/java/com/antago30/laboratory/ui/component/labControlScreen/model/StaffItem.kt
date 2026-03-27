@@ -38,7 +38,6 @@ import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.InLab
 import com.antago30.laboratory.ui.theme.Outdoor
 import com.antago30.laboratory.ui.theme.Primary
-import com.antago30.laboratory.ui.theme.Text
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -51,60 +50,75 @@ fun StaffItem(
     val scope = rememberCoroutineScope()
     var scale by remember { mutableFloatStateOf(1f) }
     val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
+
+    val disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+    val disabledBorderColor = Primary.copy(alpha = 0.05f)
+
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (enabled) {
                 CardBg.copy(alpha = 0.6f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                disabledContainerColor
             }
         ),
         border = BorderStroke(
             1.dp,
-            if (enabled) Primary.copy(alpha = 0.1f) else Primary.copy(alpha = 0.05f)
+            if (enabled) Primary.copy(alpha = 0.1f) else disabledBorderColor
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable (enabled = enabled){
-                    scale = 0.96f
-                    scope.launch {
-                        delay(200)
-                        scale = 1f
+                .clickable(
+                    enabled = enabled,
+                    onClick = {
+                        scale = 0.96f
+                        scope.launch {
+                            delay(200)
+                            scale = 1f
+                        }
+                        onClick()
                     }
-                    onClick()
-                }
+                )
                 .scale(animatedScale),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(modifier = Modifier
-                .size(72.dp)
-                .padding(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .padding(8.dp)
+            ) {
+
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .background(
-                            color = if (member.isInside) InLab.copy(alpha = 0.3f) else Outdoor.copy(
-                                alpha = 0.3f
-                            ),
+                            color = if (enabled) {
+                                if (member.isInside) InLab.copy(alpha = 0.3f)
+                                else Outdoor.copy(alpha = 0.3f)
+                            } else {
+                                disabledBorderColor
+                            },
                             shape = CircleShape
                         )
                         .align(Alignment.Center)
                 )
+
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF2D3748))
+                        .background(
+                            if (enabled) Color(0xFF2D3748) else disabledContainerColor
+                        )
                         .align(Alignment.Center),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = member.initials,
-                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     )
@@ -116,16 +130,17 @@ fun StaffItem(
                     text = member.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Text
                 )
-                Text(
-                    text = stringResource(
-                        id = if (member.isInside) R.string.inside else R.string.outside
-                    ),
-                    fontSize = 14.sp,
-                    color = if (member.isInside) InLab else Outdoor,
-                    fontWeight = FontWeight.Medium
-                )
+                if (enabled) {
+                    Text(
+                        text = stringResource(
+                            id = if (member.isInside) R.string.inside else R.string.outside
+                        ),
+                        fontSize = 14.sp,
+                        color = if (member.isInside) InLab else Outdoor,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
