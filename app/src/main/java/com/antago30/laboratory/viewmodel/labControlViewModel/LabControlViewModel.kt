@@ -93,4 +93,8 @@ class LabControlViewModel(
     fun syncServiceState() {
         advertisingUseCase.syncState()
     }
+
+    fun addNewStaffMember(newMember: StaffMember): Boolean {
+        return staffUseCase.addStaffMember(newMember)
+    }
 }

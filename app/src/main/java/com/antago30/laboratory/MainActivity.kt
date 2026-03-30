@@ -48,7 +48,8 @@ class MainActivity : ComponentActivity() {
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
 
         val labControlFactory = LabControlViewModelFactory(
-            connectionManager = connectionManager
+            connectionManager = connectionManager,
+            settingsRepo = settingsRepo
         )
         labControlViewModel = ViewModelProvider(this, labControlFactory)[LabControlViewModel::class.java]
         labControlViewModel.setAppContext(applicationContext)

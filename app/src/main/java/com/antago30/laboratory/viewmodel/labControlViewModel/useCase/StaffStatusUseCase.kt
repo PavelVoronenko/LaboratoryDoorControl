@@ -4,16 +4,20 @@ import android.util.Log
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class StaffStatusUseCase(
     private val connectionManager: BleConnectionManager,
+    private val settingsRepo: SettingsRepository,
     initialStaffList: List<StaffMember>
 ) {
     private val staffLastChangeTime = mutableMapOf<String, Long>()
-    private val _staffList = MutableStateFlow(initialStaffList)
+    private val _staffList = MutableStateFlow(
+        settingsRepo.getStaffList(fallback = initialStaffList)
+    )
     val staffList: StateFlow<List<StaffMember>> = _staffList.asStateFlow()
 
     // Карта сопоставления: имя от контроллера → id сотрудника
@@ -39,6 +43,7 @@ class StaffStatusUseCase(
             } else staff
         }
         _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
     }
 
     /**
@@ -68,6 +73,27 @@ class StaffStatusUseCase(
             } else staff
         }
         _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
+    }
+
+    fun addStaffMember(newMember: StaffMember): Boolean {
+        val currentList = _staffList.value
+        if (currentList.any { it.id == newMember.id }) return false
+
+        val updatedList = currentList + newMember
+        _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
+        return true
+    }
+
+    fun removeStaffMember(id: String): Boolean {
+        val currentList = _staffList.value
+        val updatedList = currentList.filter { it.id != id }
+        if (updatedList.size == currentList.size) return false
+
+        _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
+        return true
     }
 
     private fun buildStaffCommand(nickname: String, isInside: Boolean): String {

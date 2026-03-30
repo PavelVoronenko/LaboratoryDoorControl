@@ -3,15 +3,21 @@ package com.antago30.laboratory.util
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import com.antago30.laboratory.model.StaffMember
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class SettingsRepository(context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("lab_settings", Context.MODE_PRIVATE)
 
+    private val gson = Gson()
+
     companion object Keys {
         private const val SELECTED_DEVICE_NAME = "selected_device_name"
         private const val SELECTED_DEVICE_ADDRESS = "selected_device_address"
+        private const val STAFF_LIST_JSON = "staff_list_json"
     }
 
     fun saveSelectedDevice(deviceName: String, deviceAddress: String) {
@@ -38,4 +44,60 @@ class SettingsRepository(context: Context) {
                 .remove(SELECTED_DEVICE_ADDRESS)
         }
     }
+
+    fun saveStaffList(staffList: List<StaffMember>) {
+        val json = gson.toJson(staffList)
+        prefs.edit {
+            putString(STAFF_LIST_JSON, json)
+        }
+    }
+
+    fun getStaffList(fallback: List<StaffMember>): List<StaffMember> {
+        val json = prefs.getString(STAFF_LIST_JSON, null)
+        return if (!json.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<StaffMember>>() {}.type
+                gson.fromJson(json, type)
+            } catch (e: Exception) {
+                // При ошибке парсинга возвращаем fallback
+                fallback
+            }
+        } else {
+            fallback
+        }
+    }
+
+    fun addStaffMember(newMember: StaffMember, fallback: List<StaffMember>): List<StaffMember> {
+        val currentList = getStaffList(fallback)
+        // Проверяем, нет ли сотрудника с таким id
+        if (currentList.any { it.id == newMember.id }) {
+            return currentList // Уже существует
+        }
+        val updatedList = currentList + newMember
+        saveStaffList(updatedList)
+        return updatedList
+    }
+
+    fun updateStaffMember(id: String, update: (StaffMember) -> StaffMember, fallback: List<StaffMember>): List<StaffMember> {
+        val currentList = getStaffList(fallback)
+        val updatedList = currentList.map {
+            if (it.id == id) update(it) else it
+        }
+        saveStaffList(updatedList)
+        return updatedList
+    }
+
+    fun removeStaffMember(id: String, fallback: List<StaffMember>): List<StaffMember> {
+        val currentList = getStaffList(fallback)
+        val updatedList = currentList.filter { it.id != id }
+        saveStaffList(updatedList)
+        return updatedList
+    }
+
+    fun clearStaffList() {
+        prefs.edit {
+            remove(STAFF_LIST_JSON)
+        }
+    }
+
 }

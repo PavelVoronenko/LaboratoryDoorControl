@@ -79,4 +79,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     implementation(libs.androidx.material3)
+
+    implementation(libs.gson)
 }
