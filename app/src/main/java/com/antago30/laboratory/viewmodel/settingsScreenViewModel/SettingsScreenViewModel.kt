@@ -19,10 +19,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.antago30.laboratory.model.StaffMember
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SettingsScreenViewModel(
     private val settingsRepo: SettingsRepository,
-    private val connectionManager: BleConnectionManager
+    private val connectionManager: BleConnectionManager,
+    private val defaultStaffList: List<StaffMember>
 ) : ViewModel() {
     private var appContext: Context? = null
     // LE Scanner
@@ -30,11 +35,21 @@ class SettingsScreenViewModel(
     private var scanJob: Job? = null
     private var scanStopTimerJob: Job? = null
 
+    private val _currentUserId = MutableStateFlow(settingsRepo.getCurrentUserId())
+    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
+
+    private val _staffList = MutableStateFlow(
+        settingsRepo.getStaffList(fallback = defaultStaffList)
+    )
+    val staffList: StateFlow<List<StaffMember>> = _staffList.asStateFlow()
+
+    private val _selectedDeviceAddress = MutableStateFlow(settingsRepo.getSelectedDeviceAddress())
+    val selectedDeviceAddress: StateFlow<String?> = _selectedDeviceAddress.asStateFlow()
+
     // Состояние для выбора BLE-устройства (настройки)
     var selectedDeviceName by mutableStateOf<String?>(null)
         private set
-    var selectedDeviceAddress by mutableStateOf<String?>(null)
-        private set
+
     var isScanning by mutableStateOf(false)
         private set
     var availableDevices by mutableStateOf<List<BleDevice>>(emptyList())
@@ -49,7 +64,7 @@ class SettingsScreenViewModel(
     private fun loadSavedDevice() {
         val device = settingsRepo.getSelectedDevice()
         selectedDeviceName = device?.first
-        selectedDeviceAddress = device?.second
+        _selectedDeviceAddress.value = device?.second  // ← Через StateFlow
     }
 
     // Запуск сканирования BLE-устройств
@@ -100,7 +115,7 @@ class SettingsScreenViewModel(
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun selectDevice(device: BleDevice) {
         selectedDeviceName = device.name
-        selectedDeviceAddress = device.address
+        _selectedDeviceAddress.value = device.address
 
         settingsRepo.saveSelectedDevice(
             deviceAddress = device.address,
@@ -108,14 +123,12 @@ class SettingsScreenViewModel(
         )
 
         val bluetoothManager = appContext?.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-        val nativeDevice =  bluetoothManager?.adapter?.getRemoteDevice(device.address)
+        val nativeDevice = bluetoothManager?.adapter?.getRemoteDevice(device.address)
 
         nativeDevice?.let {
             try {
                 if (checkBlePermissionsForConnect(appContext!!)) {
                     connectionManager.connect(it, autoConnect = false)
-                } else {
-                    // Обработка отсутствия разрешения
                 }
             } catch (e: SecurityException) {
                 Log.e("SettingsScreenViewModel", "Security exception during connect: ${e.message}")
@@ -134,7 +147,7 @@ class SettingsScreenViewModel(
     // Очистка выбранного устройства
     fun clearSelectedDevice() {
         selectedDeviceName = null
-        selectedDeviceAddress = null
+        _selectedDeviceAddress.value = null
         settingsRepo.clearSelectedDevice()
     }
 
@@ -159,5 +172,23 @@ class SettingsScreenViewModel(
     override fun onCleared() {
         super.onCleared()
         stopDeviceScanInternal()
+    }
+
+    fun selectCurrentUser(staffMember: StaffMember) {
+        _currentUserId.value = staffMember.id
+        settingsRepo.saveCurrentUserId(staffMember.id)
+    }
+
+    fun clearCurrentUser() {
+        _currentUserId.value = null
+        settingsRepo.clearCurrentUserId()
+    }
+
+    fun refreshStaffList() {
+        _staffList.value = settingsRepo.getStaffList(fallback = defaultStaffList)
+    }
+
+    fun updateSelectedDevice(address: String?) {
+        _selectedDeviceAddress.value = address
     }
 }

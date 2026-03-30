@@ -18,6 +18,7 @@ class SettingsRepository(context: Context) {
         private const val SELECTED_DEVICE_NAME = "selected_device_name"
         private const val SELECTED_DEVICE_ADDRESS = "selected_device_address"
         private const val STAFF_LIST_JSON = "staff_list_json"
+        private const val CURRENT_USER_ID = "current_user_id"
     }
 
     fun saveSelectedDevice(deviceName: String, deviceAddress: String) {
@@ -71,7 +72,7 @@ class SettingsRepository(context: Context) {
         val currentList = getStaffList(fallback)
         // Проверяем, нет ли сотрудника с таким id
         if (currentList.any { it.id == newMember.id }) {
-            return currentList // Уже существует
+            return currentList
         }
         val updatedList = currentList + newMember
         saveStaffList(updatedList)
@@ -100,4 +101,23 @@ class SettingsRepository(context: Context) {
         }
     }
 
+    fun saveCurrentUserId(userId: String) {
+        prefs.edit {
+            putString(CURRENT_USER_ID, userId)
+        }
+    }
+
+    fun getCurrentUserId(): String? =
+        prefs.getString(CURRENT_USER_ID, null)
+
+    fun getCurrentUser(fallbackStaffList: List<StaffMember>): StaffMember? {
+        val currentUserId = getCurrentUserId()
+        return fallbackStaffList.find { it.id == currentUserId }
+    }
+
+    fun clearCurrentUserId() {
+        prefs.edit {
+            remove(CURRENT_USER_ID)
+        }
+    }
 }

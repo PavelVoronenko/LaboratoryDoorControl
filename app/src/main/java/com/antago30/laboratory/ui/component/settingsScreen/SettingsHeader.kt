@@ -1,10 +1,10 @@
 package com.antago30.laboratory.ui.component.settingsScreen
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.R
@@ -32,28 +31,29 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsHeader(
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
-    onAddUser: () -> Unit,
-    modifier: Modifier = Modifier
+    onBleDeviceClick: () -> Unit = {},
+    onUserClick: () -> Unit = {},
+    showBleButton: Boolean = true,
+    showUserButton: Boolean = true
 ) {
-
     val scope = rememberCoroutineScope()
     var backScale by remember { mutableFloatStateOf(1f) }
-    var addUserScale by remember { mutableFloatStateOf(1f) }
+    var bleScale by remember { mutableFloatStateOf(1f) }
+    var userScale by remember { mutableFloatStateOf(1f) }
 
-    val animatedBackScale by animateFloatAsState(
-        targetValue = backScale,
-    )
-    val animatedAddUserScale by animateFloatAsState(
-        targetValue = addUserScale,
-    )
+    val animatedBackScale by animateFloatAsState(targetValue = backScale)
+    val animatedBleScale by animateFloatAsState(targetValue = bleScale)
+    val animatedUserScale by animateFloatAsState(targetValue = userScale)
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 0.dp),
+        contentAlignment = Alignment.Center
     ) {
-
+        // === Левая часть: кнопка назад ===
         IconButton(
             onClick = {
                 backScale = 0.7f
@@ -63,41 +63,76 @@ fun SettingsHeader(
                 }
                 onBack()
             },
-            modifier = Modifier.scale(animatedBackScale)
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .scale(animatedBackScale)
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_arrow_back),
                 contentDescription = stringResource(R.string.back),
-                //tint = Color.White,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(32.dp)
             )
         }
 
+        // === Центр: заголовок ===
         Text(
-            "Настройки",
+            text = "Настройки",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Primary,
-            textAlign = TextAlign.Center
         )
 
-        IconButton(
-            onClick = {
-                addUserScale = 0.7f
-                scope.launch {
-                    delay(150)
-                    addUserScale = 1f
-                }
-                //onAddUser()
-            },
-            modifier = Modifier.scale(animatedAddUserScale)
+        // === Правая часть: кнопки BLE и Пользователь ===
+        Row(
+            modifier = Modifier.align(Alignment.CenterEnd),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.outline_group_add_24),
-                contentDescription = stringResource(R.string.addUser),
-                //tint = Color.White,
-                modifier = Modifier.size(48.dp)
-            )
+            // Кнопка BLE
+            if (showBleButton) {
+                IconButton(
+                    onClick = {
+                        bleScale = 0.7f
+                        scope.launch {
+                            delay(150)
+                            bleScale = 1f
+                        }
+                        onBleDeviceClick()
+                    },
+                    modifier = Modifier
+                        .scale(animatedBleScale)
+                        .size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Bluetooth,
+                        contentDescription = "Выбрать BLE-устройство",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            // Кнопка пользователя
+            if (showUserButton) {
+                IconButton(
+                    onClick = {
+                        userScale = 0.7f
+                        scope.launch {
+                            delay(150)
+                            userScale = 1f
+                        }
+                        onUserClick()
+                    },
+                    modifier = Modifier
+                        .scale(animatedUserScale)
+                        .size(44.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Выбрать текущего пользователя",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
         }
     }
 }
