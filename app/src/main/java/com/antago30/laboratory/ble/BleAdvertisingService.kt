@@ -15,19 +15,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class BleAdvertisingService : Service() {
 
     private lateinit var bleAdvertiser: BleAdvertiser
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private var currentServiceUuid: UUID? = null
+    private var currentAdData: String? = null
+
+    companion object {
+        const val EXTRA_SERVICE_UUID = "extra_service_uuid"
+        const val EXTRA_AD_DATA = "extra_ad_data"
+    }
+
     override fun onCreate() {
         super.onCreate()
         try {
-            bleAdvertiser = BleAdvertiser(applicationContext)
             NotificationHelper.createNotificationChannel(applicationContext)
         } catch (e: Exception) {
-            android.util.Log.e("BleAdvertisingService", "onCreate failed", e)
         }
     }
 
@@ -45,26 +52,40 @@ class BleAdvertisingService : Service() {
             } else {
                 startForeground(NotificationHelper.NOTIFICATION_ID, notification)
             }
-            android.util.Log.d("BleAdvertisingService", "✅ startForeground() SUCCESS")
         } catch (e: Exception) {
-            android.util.Log.e("BleAdvertisingService", "startForeground() failed", e)
             stopSelf()
             return START_NOT_STICKY
         }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
-            android.util.Log.e("BleAdvertisingService", "BLUETOOTH_ADVERTISE permission NOT GRANTED")
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_ADVERTISE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             return START_NOT_STICKY
         }
 
-        // Запускаем BLE в фоне ТОЛЬКО если разрешение есть
-        serviceScope.launch {
+        val serviceUuidStr = intent?.getStringExtra(EXTRA_SERVICE_UUID)
+        val adData = intent?.getStringExtra(EXTRA_AD_DATA) ?: "J7hs2Ak98g"
+
+        // Запускаем BLE в фоне
+        if (serviceUuidStr != null) {
             try {
-                kotlinx.coroutines.delay(100)
-                bleAdvertiser.startAdvertising("J7hs2Ak98g")
-                android.util.Log.d("BleAdvertisingService", "✅ Advertising started in background")
+                currentServiceUuid = UUID.fromString(serviceUuidStr)
+                currentAdData = adData
+
+                bleAdvertiser = BleAdvertiser(
+                    applicationContext,
+                    currentServiceUuid!!,
+                    currentAdData!!
+                )
+
+                serviceScope.launch {
+                    kotlinx.coroutines.delay(100)
+                    bleAdvertiser.startAdvertising()
+                }
             } catch (e: Exception) {
-                android.util.Log.e("BleAdvertisingService", "Advertising failed", e)
+                return START_NOT_STICKY
             }
         }
 

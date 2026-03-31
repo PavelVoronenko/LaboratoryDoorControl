@@ -28,14 +28,14 @@ class LabControlViewModelFactory(
                 settingsRepo = settingsRepo,
                 initialStaffList = initialStaffList
             )
-            val advertisingUseCase = AdvertisingServiceUseCase()
+            val advertisingUseCase = AdvertisingServiceUseCase(settingsRepo)
 
             val functionUseCase = FunctionControlUseCase(
                 connectionManager = connectionManager,
                 onAdvertisingToggle = { enabled ->
                     if (enabled) advertisingUseCase.start() else advertisingUseCase.stop()
                 },
-                initialFunctions = listOf(  // ← передаём начальные функции
+                initialFunctions = listOf(
                     FunctionItem("broadcast", "📡 Вещание рекламы", false, requiresConnection = false),
                     FunctionItem("lighting", "💡 Освещение", false, requiresConnection = true)
                 )
@@ -51,7 +51,8 @@ class LabControlViewModelFactory(
                 staffUseCase = staffUseCase,
                 functionUseCase = functionUseCase,
                 parsingUseCase = parsingUseCase,
-                advertisingUseCase = advertisingUseCase
+                advertisingUseCase = advertisingUseCase,
+                settingsRepo = settingsRepo
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")

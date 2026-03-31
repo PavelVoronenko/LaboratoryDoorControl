@@ -87,7 +87,7 @@ fun StaffSelectionItem(
                 )
 
                 Text(
-                    text = staff.descriptorUUID,
+                    text = staff.adData,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
                         fontSize = 10.sp

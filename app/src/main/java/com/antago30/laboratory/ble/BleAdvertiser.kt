@@ -14,7 +14,8 @@ import java.util.UUID
 
 class BleAdvertiser(
     context: Context,
-    private val serviceUuid: UUID = UUID.fromString("0000ff12-0000-1000-8000-00805f9b34fb")
+    private val serviceUuid: UUID,
+    private val adDataString: String = "J7h56Ak98g"
 ) {
 
     private val bluetoothManager: BluetoothManager =
@@ -33,9 +34,8 @@ class BleAdvertiser(
         }
     }
 
-    fun startAdvertising(adDataString: String = "J7hs2Ak98g") {
-        if (!isSupported()) return
-        if (isAdvertising) return
+    fun startAdvertising() {
+        if (!isSupported() || isAdvertising) return
 
         val adDataBytes = adDataString.toByteArray(Charsets.UTF_8)
 

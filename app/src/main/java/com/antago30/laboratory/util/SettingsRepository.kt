@@ -6,6 +6,9 @@ import androidx.core.content.edit
 import com.antago30.laboratory.model.StaffMember
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class SettingsRepository(context: Context) {
 
@@ -20,6 +23,9 @@ class SettingsRepository(context: Context) {
         private const val STAFF_LIST_JSON = "staff_list_json"
         private const val CURRENT_USER_ID = "current_user_id"
     }
+
+    private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
+    val currentUserIdFlow: StateFlow<String?> = _currentUserIdFlow.asStateFlow()
 
     fun saveSelectedDevice(deviceName: String, deviceAddress: String) {
         prefs.edit {
@@ -58,9 +64,17 @@ class SettingsRepository(context: Context) {
         return if (!json.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<StaffMember>>() {}.type
-                gson.fromJson(json, type)
+                val parsedList = gson.fromJson<List<StaffMember>>(json, type)
+
+                // ❗ Пост-обработка: гарантируем валидный adData для каждого пользователя
+                parsedList?.map { member ->
+                    member.copy(
+                        adData = member.adData.takeIf { it.isNotBlank() } ?: "J7hs2Ak98g"
+                    )
+                } ?: fallback
+
             } catch (e: Exception) {
-                // При ошибке парсинга возвращаем fallback
+                android.util.Log.e("SettingsRepository", "Failed to parse staff list", e)
                 fallback
             }
         } else {
@@ -79,7 +93,11 @@ class SettingsRepository(context: Context) {
         return updatedList
     }
 
-    fun updateStaffMember(id: String, update: (StaffMember) -> StaffMember, fallback: List<StaffMember>): List<StaffMember> {
+    fun updateStaffMember(
+        id: String,
+        update: (StaffMember) -> StaffMember,
+        fallback: List<StaffMember>
+    ): List<StaffMember> {
         val currentList = getStaffList(fallback)
         val updatedList = currentList.map {
             if (it.id == id) update(it) else it
@@ -102,9 +120,8 @@ class SettingsRepository(context: Context) {
     }
 
     fun saveCurrentUserId(userId: String) {
-        prefs.edit {
-            putString(CURRENT_USER_ID, userId)
-        }
+        prefs.edit { putString(CURRENT_USER_ID, userId) }
+        _currentUserIdFlow.value = userId
     }
 
     fun getCurrentUserId(): String? =

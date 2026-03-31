@@ -7,6 +7,7 @@ import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.AdvertisingServiceUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.BleDataParsingUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.FunctionControlUseCase
@@ -22,7 +23,8 @@ class LabControlViewModel(
     private val staffUseCase: StaffStatusUseCase,
     private val functionUseCase: FunctionControlUseCase,
     private val parsingUseCase: BleDataParsingUseCase,
-    private val advertisingUseCase: AdvertisingServiceUseCase
+    private val advertisingUseCase: AdvertisingServiceUseCase,
+    private val settingsRepo: SettingsRepository
 ) : ViewModel() {
 
     // === UI State ===
@@ -33,13 +35,11 @@ class LabControlViewModel(
     val staffList: StateFlow<List<StaffMember>> = staffUseCase.staffList
     val functions: StateFlow<List<FunctionItem>> = functionUseCase.functions
 
-    // Данные от контроллера
-    val systemMessageData = parsingUseCase.systemMessageData
-    val terminalData = parsingUseCase.terminalData
+    private var lastKnownUserId: String? = null
+
     val isAdvertising: StateFlow<Boolean> = advertisingUseCase.isRunning
 
     init {
-        // Подписка на состояние соединения
         @Suppress("MissingPermission")
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
@@ -53,6 +53,18 @@ class LabControlViewModel(
         viewModelScope.launch {
             connectionManager.characteristicData.collect { data ->
                 parsingUseCase.processData(data)
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepo.currentUserIdFlow.collect { userId ->
+                if (lastKnownUserId != null && userId != lastKnownUserId) {
+                    // Пользователь изменился → перезапустить рекламу с новыми данными
+                    if (advertisingUseCase.isRunning.value) {
+                        advertisingUseCase.onUserChanged()
+                    }
+                }
+                lastKnownUserId = userId
             }
         }
     }
