@@ -30,8 +30,8 @@ object NotificationHelper {
 
     fun createNotification(context: Context): Notification {
         return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setContentTitle("BLE Advertising")
-            .setContentText("Broadcasting...")
+            .setContentTitle("Broadcasting...")
+            //.setContentText("Broadcasting...")
             .setSmallIcon(R.drawable.advertise)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

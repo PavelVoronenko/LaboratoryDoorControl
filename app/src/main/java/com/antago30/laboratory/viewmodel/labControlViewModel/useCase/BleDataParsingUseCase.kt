@@ -3,8 +3,6 @@ package com.antago30.laboratory.viewmodel.labControlViewModel.useCase
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.CharacteristicData
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 class BleDataParsingUseCase(
     private val staffUseCase: StaffStatusUseCase,
@@ -12,9 +10,6 @@ class BleDataParsingUseCase(
 ) {
     private val _systemMessageData = MutableStateFlow("—")
     private val _terminalData = MutableStateFlow("—")
-
-    val systemMessageData: StateFlow<String> = _systemMessageData.asStateFlow()
-    val terminalData: StateFlow<String> = _terminalData.asStateFlow()
 
     fun processData(data: CharacteristicData) {
 

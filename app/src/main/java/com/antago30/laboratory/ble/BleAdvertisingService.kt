@@ -101,6 +101,8 @@ class BleAdvertisingService : Service() {
             android.util.Log.e("BleAdvertisingService", "Error stopping advertising", e)
         }
         super.onDestroy()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

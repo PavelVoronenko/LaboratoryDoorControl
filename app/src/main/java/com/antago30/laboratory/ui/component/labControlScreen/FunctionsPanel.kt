@@ -17,9 +17,10 @@ import com.antago30.laboratory.ui.theme.Primary
 @Composable
 fun FunctionsPanel(
     functions: List<FunctionItem>,
-    onFunctionToggled: (String) -> Unit,
+    onFunctionToggled: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    isConnectionEnabled: Boolean = true
+    isConnectionEnabled: Boolean = true,
+    isAdvertising: Boolean = false
 ) {
     Card(
         modifier = modifier,
@@ -31,17 +32,14 @@ fun FunctionsPanel(
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
             functions.forEach { item ->
-                val isToggleEnabled = if (item.requiresConnection) {
-                    isConnectionEnabled
-                } else {
-                    true
-                }
+                val isToggleEnabled = if (item.requiresConnection) isConnectionEnabled else true
+                val actualChecked = if (item.id == "broadcast") isAdvertising else item.isEnabled
 
                 ModeItem(
                     label = item.label,
-                    checked = item.isEnabled,
-                    onCheckedChange = {
-                        onFunctionToggled(item.id)
+                    checked = actualChecked,
+                    onCheckedChange = { newState ->
+                        onFunctionToggled(item.id, newState)
                     },
                     enabled = isToggleEnabled
                 )

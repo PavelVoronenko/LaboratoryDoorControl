@@ -15,10 +15,11 @@ import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ui.theme.LaboratoryTheme
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
-import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModelFactory
+import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var connectionManager: BleConnectionManager
     private lateinit var appLifecycleObserver: AppLifecycleObserver
 
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -53,6 +55,7 @@ class MainActivity : ComponentActivity() {
         )
         labControlViewModel = ViewModelProvider(this, labControlFactory)[LabControlViewModel::class.java]
         labControlViewModel.setAppContext(applicationContext)
+        labControlViewModel.syncServiceState()
 
         val settingsFactory = SettingsScreenViewModelFactory(
             settingsRepo = settingsRepo,

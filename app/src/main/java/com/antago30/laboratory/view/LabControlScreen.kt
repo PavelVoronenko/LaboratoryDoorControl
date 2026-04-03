@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -50,11 +49,6 @@ fun LabControlScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.setAppContext(context)
-        viewModel.syncServiceState()
-    }
-
     ConstraintLayout(
         modifier = modifier
             .fillMaxSize()
@@ -89,14 +83,13 @@ fun LabControlScreen(
 
         FunctionsPanel(
             functions = functions,
-            onFunctionToggled = { id ->
+            isAdvertising = isAdvertising,
+            onFunctionToggled = { id, newState ->
                 if (id == "broadcast") {
-                    val wasEnabled = functions.find { it.id == "broadcast" }?.isEnabled == true
-                    val nowEnabled = !wasEnabled
-
                     viewModel.toggleFunction(id)
 
-                    if (nowEnabled) {
+                    if (newState) {
+                        // Пользователь включил → запускаем рекламу
                         if (androidx.core.content.ContextCompat.checkSelfPermission(
                                 context, Manifest.permission.BLUETOOTH_ADVERTISE
                             ) == PackageManager.PERMISSION_GRANTED
@@ -106,6 +99,7 @@ fun LabControlScreen(
                             advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
                         }
                     } else {
+                        // Пользователь выключил → останавливаем рекламу
                         viewModel.stopBleAdvertising()
                     }
                 } else {

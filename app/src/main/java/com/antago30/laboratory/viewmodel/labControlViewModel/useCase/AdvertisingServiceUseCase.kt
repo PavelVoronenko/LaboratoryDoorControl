@@ -18,9 +18,6 @@ class AdvertisingServiceUseCase(
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
-    private data class LastParams(val uuid: String, val adData: String)
-
-    private var lastStartedParams: LastParams? = null
     private var isStarting = false
 
     private var appContext: Context? = null
@@ -31,33 +28,38 @@ class AdvertisingServiceUseCase(
     }
 
     fun start() {
-        if (isStarting) {
+        if (isStarting) return
+
+        val ctx = appContext ?: return
+
+        if (checkIfServiceIsRunning(ctx)) {
+            _isRunning.value = true
+            isStarting = false
             return
         }
 
-        val currentUser = settingsRepo.getCurrentUser(
-            settingsRepo.getStaffList(emptyList())
-        )
-
+        val currentUser = settingsRepo.getCurrentUser(settingsRepo.getStaffList(emptyList()))
         val serviceUuidStr = currentUser?.serviceUUID?.takeIf { it.isNotBlank() }
             ?: "0000ff12-0000-1000-8000-00805f9b34fb"
         val adData = currentUser?.adData?.takeIf { it.isNotBlank() }
             ?: "J7hs2Ak98g"
 
-        val newParams = LastParams(serviceUuidStr, adData)
-
-        if (_isRunning.value && lastStartedParams == newParams) {
-            return
-        }
-
         isStarting = true
-
-
         try {
             val serviceUuid = UUID.fromString(serviceUuidStr)
             startWithParams(serviceUuid, adData)
         } catch (e: IllegalArgumentException) {
+            isStarting = false
         }
+    }
+
+    fun stop() {
+        val ctx = appContext ?: return
+        val intent = Intent(ctx, BleAdvertisingService::class.java)
+        val stopped = ctx.stopService(intent)
+
+        _isRunning.value = false
+        isStarting = false
     }
 
     private fun startWithParams(serviceUuid: UUID, adData: String) {
@@ -74,21 +76,10 @@ class AdvertisingServiceUseCase(
     fun restartWithCurrentUser() {
         if (!_isRunning.value) return
         stop()
-        // Небольшая задержка для гарантированной остановки
         kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) {
             kotlinx.coroutines.delay(200)
             start()
         }
-    }
-
-    fun stop() {
-        appContext?.let {
-            appContext?.let { ctx ->
-                ctx.stopService(Intent(ctx, BleAdvertisingService::class.java))
-                _isRunning.value = false
-            }
-        }
-        isStarting = false
     }
 
     fun onUserChanged() {
@@ -97,17 +88,21 @@ class AdvertisingServiceUseCase(
     }
 
     fun syncState() {
-        _isRunning.value = checkIfServiceIsRunning()
+        val ctx = appContext ?: return
+        _isRunning.value = checkIfServiceIsRunning(ctx)
     }
 
-    private fun checkIfServiceIsRunning(): Boolean {
-        return appContext?.let { ctx ->
-            val manager =
-                ctx.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+    private fun checkIfServiceIsRunning(context: Context): Boolean {
+        return try {
+            val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
             @Suppress("DEPRECATION")
-            manager.getRunningServices(Int.MAX_VALUE).any {
-                BleAdvertisingService::class.java.name == it.service.className
+            manager.getRunningServices(Int.MAX_VALUE).any { service ->
+                val className = service.service.className
+                className == BleAdvertisingService::class.java.name ||
+                        className.endsWith(".BleAdvertisingService")
             }
-        } ?: false
+        } catch (e: Exception) {
+            false
+        }
     }
 }
