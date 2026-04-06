@@ -4,15 +4,19 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -23,12 +27,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog.BleDeviceSelectionDialog
 import com.antago30.laboratory.ui.component.settingsScreen.staffSelectionDialog.StaffSelectionDialog
+import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import kotlinx.coroutines.launch
 
@@ -39,7 +45,8 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsScreenViewModel,
     onBack: () -> Unit,
-    onAddUser: () -> Unit = {}
+    onAddUserClick: () -> Unit,
+    onManageUsersClick: () -> Unit,
 ) {
     val context = LocalContext.current
     val snackBarHostState = remember { SnackbarHostState() }
@@ -143,108 +150,65 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // === Инфо-блок: текущие выборы (компактный, только для отображения) ===
-            /*if (selectedDeviceAddress != null || currentUser != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Инфо об устройстве
-                    if (selectedDeviceAddress != null) {
-                        InfoChip(
-                            icon = androidx.compose.material.icons.Icons.Default.Bluetooth,
-                            label = viewModel.selectedDeviceName ?: "Устройство",
-                            subLabel = selectedDeviceAddress,
-                            onClear = { viewModel.clearSelectedDevice() }
-                        )
-                    }
-                    // Инфо о пользователе
-                    if (currentUser != null) {
-                        InfoChip(
-                            icon = androidx.compose.material.icons.Icons.Default.Person,
-                            label = currentUser.name,
-                            subLabel = "Инициалы: ${currentUser.initials}",
-                            onClear = { viewModel.clearCurrentUser() }
-                        )
-                    }
-                }
-            }*/
-
             if (selectedDeviceAddress == null && currentUser == null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 40.dp),
-                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     androidx.compose.material3.Text(
                         text = "Выберите устройство и пользователя",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                     androidx.compose.material3.Text(
                         text = "Нажмите на иконки 🔗 или 👤 в шапке экрана",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             }
         }
     }
-}
 
-// === Вспомогательный компонент для отображения выбранного ===
-@Composable
-private fun InfoChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    subLabel: String? = null,
-    onClear: () -> Unit
-) {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        androidx.compose.foundation.layout.Row(
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Ваш существующий контент (настройки, переключатели и т.д.)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            androidx.compose.material3.Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = androidx.compose.material3.MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Column {
-                androidx.compose.material3.Text(
-                    text = label,
-                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.onSurface
-                )
-                if (subLabel != null) {
-                    androidx.compose.material3.Text(
-                        text = subLabel,
-                        style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                        color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            // ... ваши настройки ...
         }
-        androidx.compose.material3.IconButton(
-            onClick = onClear,
-            modifier = Modifier.size(32.dp)
+
+        FloatingActionButton(
+            onClick = onManageUsersClick,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 80.dp), // Сдвиг вверх
+            containerColor = MaterialTheme.colorScheme.secondary
         ) {
-            androidx.compose.material3.Icon(
-                imageVector = androidx.compose.material.icons.Icons.Default.Close,
-                contentDescription = "Очистить",
-                tint = androidx.compose.material3.MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(18.dp)
+            Icon(
+                androidx.compose.material.icons.Icons.Default.DeleteSweep,
+                contentDescription = "Управление пользователями",
+                tint = MaterialTheme.colorScheme.onSecondary
+            )
+        }
+
+        // Плавающая кнопка добавления пользователя (справа снизу)
+        FloatingActionButton(
+            onClick = onAddUserClick,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Primary
+        ) {
+            Icon(
+                androidx.compose.material.icons.Icons.Default.PersonAdd,
+                contentDescription = "Добавить пользователя",
+                tint = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
