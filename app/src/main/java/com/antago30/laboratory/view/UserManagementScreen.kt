@@ -205,11 +205,11 @@ fun UserManagementScreen(
                         modifier = Modifier.fillMaxSize().padding(bottom = 80.dp)
                     )
 
-                    if (!isLoading) {
+                    if (isLoading) {
                         CircularProgressIndicator(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding( bottom = 16.dp),
+                                .padding( bottom = 24.dp),
                             color = Primary,
                             strokeWidth = 3.dp
                         )

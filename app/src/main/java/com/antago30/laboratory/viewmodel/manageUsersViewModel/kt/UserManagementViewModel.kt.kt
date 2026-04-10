@@ -37,7 +37,7 @@ class UserManagementViewModel(
     private var userListTotalChunks = 0
     private var userListReceiving = false
     private var userListLastReceived = 0L
-    private val CHUNK_TIMEOUT_MS = 2000L  // Тайм-аут сборки: 2 секунды
+    private val CHUNK_TIMEOUT_MS = 2000L  // Тайм-аут сборки: 2 секунд
 
     // === Предустановленные значения (из AddUserViewModel) ===
     val uuidOptions = listOf(
@@ -125,7 +125,7 @@ class UserManagementViewModel(
             }
 
             val parsed = data.split("|")
-                .filter { it.isNotBlank() }  // Убираем пустые записи
+                .filter { it.isNotBlank() }
                 .mapNotNull { entry ->
                     val parts = entry.split(",")
 
@@ -292,7 +292,7 @@ class UserManagementViewModel(
             val headerParts = header.split('/')
             val chunkIndex = headerParts[0].toInt()
             val totalChunks = if (headerParts.size > 1) {
-                headerParts[1].toInt()
+                headerParts[1].toIntOrNull() ?: -1
             } else {
                 -1
             }
@@ -327,20 +327,22 @@ class UserManagementViewModel(
                 return
             }
 
+            // ✅ При получении первого чанка очищаем буфер
+            if (chunkIndex == 0) {
+                userListChunks.clear()
+                userListReceiving = true
+                userListTotalChunks = totalChunks
+                checkChunkTimeout()
+            }
+            
             userListChunks[chunkIndex] = chunkData
             userListLastReceived = System.currentTimeMillis()
 
-            if (totalChunks > 0) {
-                if (chunkIndex == 0) {
-                    userListReceiving = true
-                    userListTotalChunks = totalChunks
-                    checkChunkTimeout()
-                }
-                if (userListChunks.size == userListTotalChunks) {
-                    assembleAndParseUserList()
-                }
-            } else if (hasEnd) {
+            // ✅ Собираем ТОЛЬКО при получении |END маркера
+            if (hasEnd) {
+                Log.d("UserManagementVM", "🏁 Received END marker, assembling ${userListChunks.size} chunks...")
                 assembleAndParseUserList()
+                return
             }
 
         } catch (e: Exception) {
