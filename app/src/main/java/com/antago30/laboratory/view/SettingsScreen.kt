@@ -3,6 +3,11 @@ package com.antago30.laboratory.view
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,9 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog.BleDeviceSelectionDialog
 import com.antago30.laboratory.ui.component.settingsScreen.staffSelectionDialog.StaffSelectionDialog
+import com.antago30.laboratory.ui.component.userManagementScreen.UserManagementFab
 import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import kotlinx.coroutines.launch
@@ -45,7 +52,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsScreenViewModel,
     onBack: () -> Unit,
-    onAddUserClick: () -> Unit,
     onManageUsersClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -140,6 +146,18 @@ fun SettingsScreen(
                 showBleButton = true,
                 showUserButton = true
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onManageUsersClick,
+                containerColor = Primary
+            ) {
+                Icon(
+                    Icons.Default.ManageAccounts,
+                    contentDescription = "Управление пользователями",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -170,46 +188,6 @@ fun SettingsScreen(
                     )
                 }
             }
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Ваш существующий контент (настройки, переключатели и т.д.)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // ... ваши настройки ...
-        }
-
-        FloatingActionButton(
-            onClick = onManageUsersClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 80.dp), // Сдвиг вверх
-            containerColor = MaterialTheme.colorScheme.secondary
-        ) {
-            Icon(
-                androidx.compose.material.icons.Icons.Default.DeleteSweep,
-                contentDescription = "Управление пользователями",
-                tint = MaterialTheme.colorScheme.onSecondary
-            )
-        }
-
-        // Плавающая кнопка добавления пользователя (справа снизу)
-        FloatingActionButton(
-            onClick = onAddUserClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = Primary
-        ) {
-            Icon(
-                androidx.compose.material.icons.Icons.Default.PersonAdd,
-                contentDescription = "Добавить пользователя",
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
         }
     }
 }

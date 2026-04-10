@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.model.UserInfo
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ class SettingsRepository(context: Context) {
         private const val SELECTED_DEVICE_ADDRESS = "selected_device_address"
         private const val STAFF_LIST_JSON = "staff_list_json"
         private const val CURRENT_USER_ID = "current_user_id"
+        private const val CACHED_USER_INFO_LIST_JSON = "cached_user_info_list_json"
     }
 
     private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
@@ -135,6 +137,29 @@ class SettingsRepository(context: Context) {
     fun clearCurrentUserId() {
         prefs.edit {
             remove(CURRENT_USER_ID)
+        }
+    }
+
+    // Методы для кэширования UserInfo от контроллера
+    fun saveCachedUserInfoList(list: List<UserInfo>) {
+        val json = gson.toJson(list)
+        prefs.edit {
+            putString(CACHED_USER_INFO_LIST_JSON, json)
+        }
+    }
+
+    fun getCachedUserInfoList(): List<UserInfo> {
+        val json = prefs.getString(CACHED_USER_INFO_LIST_JSON, null)
+        return if (!json.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<UserInfo>>() {}.type
+                gson.fromJson<List<UserInfo>>(json, type) ?: emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsRepository", "Failed to parse cached UserInfo list", e)
+                emptyList()
+            }
+        } else {
+            emptyList()
         }
     }
 }

@@ -146,4 +146,6 @@ class BleConnectionManager(
         Log.d("BLE_DEBUG", "📡 Requesting MTU: $size")
         return gatt.requestMtu(size)
     }
+
+    fun getSettingsRepository() = settingsRepo
 }

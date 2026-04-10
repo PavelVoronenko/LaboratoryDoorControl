@@ -44,7 +44,7 @@ class LabControlViewModel(
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
                 if (state == ConnectionState.READY) {
-                    connectionManager.requestMtu(200)
+                    connectionManager.requestMtu(512)
                     connectionManager.subscribeToSensorData()
                 }
             }

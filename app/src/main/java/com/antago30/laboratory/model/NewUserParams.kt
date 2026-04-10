@@ -15,10 +15,12 @@ data class NewUserParams(
 
     // Валидация полей
     fun isValid(): Boolean {
+        val cleanMac = macAddress.replace(":", "")
         return id > 0 &&
                 name.isNotBlank() &&
                 uuid.matches(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) &&
                 serviceData.isNotBlank() &&
-                macAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))
+                cleanMac.length == 12 &&
+                cleanMac.matches(Regex("[0-9A-Fa-f]{12}"))
     }
 }

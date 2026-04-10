@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -15,12 +14,10 @@ import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ui.theme.LaboratoryTheme
 import com.antago30.laboratory.util.SettingsRepository
-import com.antago30.laboratory.viewmodel.addUserViewModel.kt.AddUserViewModel
-import com.antago30.laboratory.viewmodel.addUserViewModel.kt.AddUserViewModelFactory
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModelFactory
-import com.antago30.laboratory.viewmodel.manageUsersViewModel.kt.ManageUsersViewModel
-import com.antago30.laboratory.viewmodel.manageUsersViewModel.kt.ManageUsersViewModelFactory
+import com.antago30.laboratory.viewmodel.manageUsersViewModel.kt.UserManagementViewModel
+import com.antago30.laboratory.viewmodel.manageUsersViewModel.kt.UserManagementViewModelFactory
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
@@ -69,13 +66,10 @@ class MainActivity : ComponentActivity() {
         settingsScreenViewModel = ViewModelProvider(this, settingsFactory)[SettingsScreenViewModel::class.java]
         settingsScreenViewModel.setAppContext(applicationContext)
 
-        val addUserViewModel: AddUserViewModel by viewModels {
-            AddUserViewModelFactory(connectionManager)
-        }
-
-        val manageUsersViewModel: ManageUsersViewModel by viewModels {
-            ManageUsersViewModelFactory(connectionManager)
-        }
+        val userManagementViewModel: UserManagementViewModel = ViewModelProvider(
+            this,
+            UserManagementViewModelFactory(connectionManager = connectionManager)
+        )[UserManagementViewModel::class.java]
 
         enableEdgeToEdge()
         setContent {
@@ -86,8 +80,7 @@ class MainActivity : ComponentActivity() {
                         LaboratoryApp(
                             labControlViewModel = labControlViewModel,
                             settingsScreenViewModel = settingsScreenViewModel,
-                            addUserViewModel = addUserViewModel,
-                            manageUsersViewModel = manageUsersViewModel,
+                            userManagementViewModel = userManagementViewModel,
                             connectionManager = connectionManager,
                             modifier = Modifier.padding(padding),
                         )
