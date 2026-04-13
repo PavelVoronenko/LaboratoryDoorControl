@@ -39,6 +39,17 @@ class BleDataParsingUseCase(
                     val isLightOn = lightStatus == "1"
                     functionUseCase.syncLightingState(isLightOn, currentTime)
                 }
+                // Новый формат: ID1-1 (id=1, inside=true) или ID2-0 (id=2, inside=false)
+                part.startsWith("ID", ignoreCase = true) && part.contains("-") -> {
+                    val dashIndex = part.indexOf('-')
+                    if (dashIndex > 2) {
+                        val staffId = part.substring(2, dashIndex)
+                        val stateStr = part.substring(dashIndex + 1)
+                        val isInside = stateStr == "1"
+                        staffUseCase.applyControllerUpdate(staffId, isInside, currentTime)
+                    }
+                }
+                // Старый формат (обратная совместимость): Имя-inside/outside
                 part.contains("-inside", ignoreCase = true) || part.contains("-outside", ignoreCase = true) -> {
                     val lastIndex = part.lastIndexOf('-')
                     if (lastIndex > 0) {

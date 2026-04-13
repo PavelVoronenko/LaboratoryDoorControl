@@ -139,7 +139,7 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
       outArray[count].macAddress = String(temp.macAddress);
       
       // Runtime-поля
-      outArray[count].location = "outside";
+      outArray[count].location = "inside";
       outArray[count].rssiThreshold = -70;
       outArray[count].userTime = 0;
       outArray[count].entryInProgress = false;
@@ -558,15 +558,34 @@ void addNewUserFromCommand(String params) {
   
   // Сохраняем в NVS
   if (saveTrustedDevice(&newUser)) {
+    // Сохраняем текущие статусы перед перезагрузкой
+    String savedLocations[MAX_USERS];
+    int savedIds[MAX_USERS];
+    int savedCount = trustedDevicesCount;
+    for (int i = 0; i < savedCount; i++) {
+      savedIds[i] = trustedDevices[i].id;
+      savedLocations[i] = trustedDevices[i].location;
+    }
+
     // Перезагружаем runtime-массив
     trustedDevicesCount = loadTrustedDevices(trustedDevices, MAX_USERS);
-    
+
+    // Восстанавливаем статусы
+    for (int i = 0; i < trustedDevicesCount; i++) {
+      for (int j = 0; j < savedCount; j++) {
+        if (trustedDevices[i].id == savedIds[j]) {
+          trustedDevices[i].location = savedLocations[j];
+          break;
+        }
+      }
+    }
+
     // Устанавливаем порог для нового пользователя
     int idx = findDeviceByMAC(trustedDevices, trustedDevicesCount, mac);
     if (idx >= 0) {
       trustedDevices[idx].rssiThreshold = rssiThreshold;
     }
-    
+
     log("Пользователь '" + name + "' добавлен (ID:" + String(id) + ")");
   } else {
     log("Ошибка сохранения в NVS");
@@ -657,7 +676,7 @@ void sendUserListChunked() {
 void commandHandler () {
   if (rxValue.length() > 0) {
     String cmd = String(rxValue.c_str());
-    log("Получена команда: " + cmd);
+    //log("Получена команда: " + cmd);
     
     if (cmd.equalsIgnoreCase("OPENDOOR")) {
       openDoor(0, "|APP|");
@@ -671,34 +690,28 @@ void commandHandler () {
       lightSwitches ("lightOFF", "Освещение отключено");
     }
 
-    if (cmd.equalsIgnoreCase("PASHAOUTSIDE")) {
-      trustedDevices[0].location = "outside";
-      log("Паша сменил статус на outside");
-    }
-
-    if (cmd.equalsIgnoreCase("PASHAINSIDE")) {
-      trustedDevices[0].location = "inside";
-      log("Паша сменил статус на inside");
-    }
-
-    if (cmd.equalsIgnoreCase("SLAVAOUTSIDE")) {
-      trustedDevices[1].location = "outside";
-      log("Слава сменил статус на outside");
-    }
-
-    if (cmd.equalsIgnoreCase("SLAVAINSIDE")) {
-      trustedDevices[1].location = "inside";
-      log("Слава сменил статус на inside");
-    }
-
-    if (cmd.equalsIgnoreCase("VOLODIAOUTSIDE")) {
-      trustedDevices[2].location = "outside";
-      log("Володя сменил статус на outside");
-    }
-
-    if (cmd.equalsIgnoreCase("VOLODIAINSIDE")) {
-      trustedDevices[2].location = "inside";
-      log("Володя сменил статус на inside");
+    // SETUSER:id-state (state: 1=inside, 0=outside)
+    if (cmd.startsWith("SETUSER:")) {
+      String params = cmd.substring(8);
+      int dashIndex = params.indexOf('-');
+      if (dashIndex > 0) {
+        int userId = params.substring(0, dashIndex).toInt();
+        int state = params.substring(dashIndex + 1).toInt();
+        
+        // Находим устройство по ID
+        for (int i = 0; i < trustedDevicesCount; i++) {
+          if (trustedDevices[i].id == userId) {
+            if (state == 1) {
+              trustedDevices[i].location = "inside";
+              log("Пользователь #" + String(userId) + " теперь внутри");
+            } else {
+              trustedDevices[i].location = "outside";
+              log("Пользователь #" + String(userId) + " теперь снаружи");
+            }
+            break;
+          }
+        }
+      }
     }
 
     // ADDUSER:id|name|uuid|serviceData|mac|threshold
@@ -711,8 +724,28 @@ void commandHandler () {
     if (cmd.startsWith("DELUSER:")) {
       int id = cmd.substring(8).toInt();
       if (deleteTrustedDevice(id)) {
-        // Перезагружаем массив после удаления
+        // Сохраняем текущие статусы перед перезагрузкой
+        String savedLocations[MAX_USERS];
+        int savedIds[MAX_USERS];
+        int savedCount = trustedDevicesCount;
+        for (int i = 0; i < savedCount; i++) {
+          savedIds[i] = trustedDevices[i].id;
+          savedLocations[i] = trustedDevices[i].location;
+        }
+
+        // Перезагружаем массив из NVS
         trustedDevicesCount = loadTrustedDevices(trustedDevices, MAX_USERS);
+
+        // Восстанавливаем статусы
+        for (int i = 0; i < trustedDevicesCount; i++) {
+          for (int j = 0; j < savedCount; j++) {
+            if (trustedDevices[i].id == savedIds[j]) {
+              trustedDevices[i].location = savedLocations[j];
+              break;
+            }
+          }
+        }
+
         log("Пользователь #" + String(id) + " удалён");
       }
     }
@@ -729,12 +762,12 @@ void commandHandler () {
 // ----------------------- Отправка служебных данных ------------------------------
 void sendCommand() {
   String sendCommand = ("" + lightStatus + "|");
-  
+
   for (int i = 0; i < trustedDevicesCount; i++) {
-      sendCommand += (trustedDevices[i].name + "-" + trustedDevices[i].location + "|");
-  }  
+      sendCommand += ("ID" + String(trustedDevices[i].id) + "-" + String(trustedDevices[i].location == "inside" ? 1 : 0) + "|");
+  }
   pCharacteristic->setValue("" + sendCommand);
-  pCharacteristic->notify();  
+  pCharacteristic->notify();
 }
 // ----------------------- Включение и отключение освещения -------------------------
 void lightSwitches(String command, String message) {

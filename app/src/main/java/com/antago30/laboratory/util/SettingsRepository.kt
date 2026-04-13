@@ -169,18 +169,23 @@ class SettingsRepository(context: Context) {
         }
 
         val updatedStaffList = userInfoList.map { userInfo ->
-            // Проверяем, есть ли уже такой сотрудник в текущем списке
-            val existingStaff = currentStaffList.find { 
-                it.macAddress.uppercase() == userInfo.macAddress.uppercase() 
+            // Проверяем, есть ли уже такой сотрудник в текущем списке по имени (MAC может быть placeholder)
+            val existingStaff = currentStaffList.find {
+                it.name.equals(userInfo.name, ignoreCase = true)
             }
 
             if (existingStaff != null) {
-                // Обновляем UUID, ServiceData, имя и инициалы; сохраняем статус isInside
+                android.util.Log.d(
+                    "SettingsRepository",
+                    "🔄 Найдено совпадение по имени: ${userInfo.name}, сохраняем isInside=${existingStaff.isInside}"
+                )
+                // Обновляем ID, UUID, ServiceData, MAC и инициалы; сохраняем статус isInside
                 existingStaff.copy(
+                    id = userInfo.id.toString(), // Всегда используем актуальный ID от контроллера
                     initials = generateInitials(userInfo.name),
                     serviceUUID = userInfo.uuid,
                     adData = userInfo.serviceData,
-                    name = userInfo.name
+                    macAddress = userInfo.macAddress // Также обновляем MAC на актуальный
                 )
             } else {
                 // Создаём нового сотрудника

@@ -21,21 +21,13 @@ class StaffStatusUseCase(
     )
     val staffList: StateFlow<List<StaffMember>> = _staffList.asStateFlow()
 
-    // Карта сопоставления: имя от контроллера → id сотрудника
-    private val controllerNameToStaffId = mapOf(
-        "ВОЛОДЯ" to "volodia",
-        "СЛАВА" to "slava",
-        "ПАША" to "pasha",
-        // Добавляй новые пары здесь
-    )
-
     fun toggleStaffStatus(id: String, onCommandSend: (String) -> Unit) {
         val currentTime = System.currentTimeMillis()
         val currentList = _staffList.value
         val updatedList = currentList.map { staff ->
             if (staff.id == id) {
                 val newIsInside = !staff.isInside
-                val command = buildStaffCommand(staff.initials, newIsInside)
+                val command = buildStaffCommand(staff.id, newIsInside)
                 if (connectionManager.connectionStateFlow.value == ConnectionState.READY) {
                     onCommandSend(command)
                 }
@@ -73,54 +65,54 @@ class StaffStatusUseCase(
      */
     fun syncStaffListFromController(userInfoList: List<UserInfo>) {
         val currentList = _staffList.value
+        android.util.Log.d("StaffStatusUseCase", "📋 syncStaffListFromController: ${currentList.size} текущих, ${userInfoList.size} от контроллера")
+        currentList.forEach { 
+            android.util.Log.d("StaffStatusUseCase", "  Текущий: ${it.name} (MAC:${it.macAddress}) isInside=${it.isInside}")
+        }
+
         val updatedList = settingsRepo.syncStaffListFromUserInfo(
             userInfoList = userInfoList,
             currentStaffList = currentList
         )
 
+        android.util.Log.d("StaffStatusUseCase", "✅ После синхронизации:")
+        updatedList.forEach {
+            android.util.Log.d("StaffStatusUseCase", "  ${it.name} (ID:${it.id}) isInside=${it.isInside}")
+        }
+
         _staffList.value = updatedList
         settingsRepo.saveStaffList(updatedList)
-
-        Log.d(
-            "StaffStatusUseCase",
-            "✅ Синхронизировано: ${updatedList.size} сотрудников"
-        )
     }
 
     /**
-     * Применяет обновления статуса от контроллера (например, PASHA-inside).
-     * Использует маппинг имён из UserInfo, если доступен.
+     * Применяет обновления статуса от контроллера.
+     * @param staffIdOrName ID сотрудника или имя (для обратной совместимости)
+     * @param isInside true если внутри
      */
     fun applyControllerUpdate(
-        controllerName: String,
+        staffIdOrName: String,
         isInside: Boolean,
         currentTime: Long = System.currentTimeMillis()
     ) {
         val currentList = _staffList.value
 
-        // Сначала пытаемся найти по точному совпадению имени
-        var staffId = controllerNameToStaffId[controllerName.uppercase()]
-
-        // Если не нашли - пытаемся найти по имени в текущем списке
-        if (staffId == null) {
+        // Сначала пытаемся найти по ID
+        val staffId = if (currentList.any { it.id == staffIdOrName }) {
+            staffIdOrName
+        } else {
+            // Не нашли по ID - пытаемся найти по имени (обратная совместимость)
             val matchedStaff = currentList.find { staff ->
-                staff.name.contains(controllerName, ignoreCase = true) ||
-                    controllerName.contains(staff.name, ignoreCase = true) ||
-                    staff.initials.uppercase() == controllerName.uppercase()
+                staff.name.contains(staffIdOrName, ignoreCase = true) ||
+                    staffIdOrName.contains(staff.name, ignoreCase = true) ||
+                        staff.initials.equals(staffIdOrName, ignoreCase = true)
             }
-            if (matchedStaff != null) {
-                staffId = matchedStaff.id
-                Log.d(
-                    "StaffStatusUseCase",
-                    "🔍 Найдено совпадение: $controllerName -> ${matchedStaff.name} (${matchedStaff.id})"
-                )
-            }
+            matchedStaff?.id
         }
 
         if (staffId == null) {
             Log.w(
                 "StaffStatusUseCase",
-                "⚠️ Не удалось сопоставить: $controllerName"
+                "⚠️ Не удалось сопоставить: $staffIdOrName"
             )
             return
         }
@@ -133,7 +125,7 @@ class StaffStatusUseCase(
                     Log.d("BLE_DEBUG", "⏭️ Ignoring controller update for ${staff.name} (local change pending)")
                     staff
                 } else {
-                    Log.d("BLE_DEBUG", "✅ Updating ${staff.name}: isInside = $isInside")
+                    Log.d("BLE_DEBUG", "✅ Updating ${staff.name} (ID:${staff.id}): isInside = $isInside")
                     staff.copy(isInside = isInside, lastUpdated = currentTime)
                 }
             } else staff
@@ -142,14 +134,8 @@ class StaffStatusUseCase(
         settingsRepo.saveStaffList(updatedList)
     }
 
-    private fun buildStaffCommand(nickname: String, isInside: Boolean): String {
-        val name = when (nickname.uppercase()) {
-            "ПЕ", "ПАША" -> "PASHA"
-            "ВО", "СЛАВА" -> "SLAVA"
-            "ВВ", "ВОЛОДЯ" -> "VOLODIA"
-            else -> return ""
-        }
-        val status = if (isInside) "INSIDE" else "OUTSIDE"
-        return "${name}${status}"
+    private fun buildStaffCommand(staffId: String, isInside: Boolean): String {
+        val state = if (isInside) "1" else "0"
+        return "SETUSER:$staffId-$state"
     }
 }
