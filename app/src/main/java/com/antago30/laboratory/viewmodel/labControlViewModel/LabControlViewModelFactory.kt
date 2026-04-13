@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.FunctionItem
-import com.antago30.laboratory.model.StaffData
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.AdvertisingServiceUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.BleDataParsingUseCase
@@ -20,7 +19,7 @@ class LabControlViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LabControlViewModel::class.java)) {
             val initialStaffList = settingsRepo.getStaffList(
-                fallback = StaffData.DEFAULT_STAFF_LIST
+                fallback = emptyList()
             )
 
             val staffUseCase = StaffStatusUseCase(

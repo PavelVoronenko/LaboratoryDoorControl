@@ -34,10 +34,11 @@ class BleCommandSender(
 
         return try {
             val bytes = command.toByteArray(Charsets.UTF_8)
+            // Пробуем WRITE_TYPE_NO_RESPONSE (быстрее, не требует подтверждения)
             val writeResult = gatt.writeCharacteristic(
                 characteristic,
                 bytes,
-                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
             )
             if (writeResult == BluetoothGatt.GATT_SUCCESS) Result.Success else Result.WriteFailed
         } catch (e: Exception) {

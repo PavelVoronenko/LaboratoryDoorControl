@@ -63,7 +63,7 @@ class SettingsRepository(context: Context) {
     }
 
     fun getStaffList(fallback: List<StaffMember>): List<StaffMember> {
-        val json = prefs.getString(CACHED_USER_INFO_LIST_JSON, null)
+        val json = prefs.getString(STAFF_LIST_JSON, null)
         return if (!json.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<StaffMember>>() {}.type
@@ -120,6 +120,91 @@ class SettingsRepository(context: Context) {
         prefs.edit {
             remove(STAFF_LIST_JSON)
         }
+    }
+
+    // === Синхронизация списка сотрудников из UserInfo (от контроллера) ===
+
+    // Вспомогательная функция для генерации инициалов из полного имени
+    // "Павел Евгеньевич" -> "ПЕ", "ВладимирВикторович" -> "ВВ"
+    private fun generateInitials(fullName: String): String {
+        val trimmed = fullName.trim()
+        
+        // Пробуем разбить по пробелам
+        var parts = trimmed.split("\\s+".toRegex()).filter { it.isNotEmpty() }
+        
+        // Если пробелов нет, пытаемся разбить по заглавным буквам (camelCase)
+        if (parts.size < 2) {
+            parts = buildList {
+                val currentWord = StringBuilder()
+                for (char in trimmed) {
+                    if (char.isUpperCase() && currentWord.isNotEmpty()) {
+                        add(currentWord.toString())
+                        currentWord.clear()
+                    }
+                    currentWord.append(char)
+                }
+                if (currentWord.isNotEmpty()) add(currentWord.toString())
+            }
+        }
+        
+        return when {
+            parts.size >= 2 -> {
+                // Берём первые буквы первых двух слов
+                parts.take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
+            }
+            parts.size == 1 -> {
+                // Одно слово - берём первые 2 буквы
+                parts[0].take(2).uppercase()
+            }
+            else -> "??"
+        }
+    }
+
+    fun syncStaffListFromUserInfo(
+        userInfoList: List<UserInfo>,
+        currentStaffList: List<StaffMember>
+    ): List<StaffMember> {
+        if (userInfoList.isEmpty()) {
+            return currentStaffList
+        }
+
+        val updatedStaffList = userInfoList.map { userInfo ->
+            // Проверяем, есть ли уже такой сотрудник в текущем списке
+            val existingStaff = currentStaffList.find { 
+                it.macAddress.uppercase() == userInfo.macAddress.uppercase() 
+            }
+
+            if (existingStaff != null) {
+                // Обновляем UUID, ServiceData, имя и инициалы; сохраняем статус isInside
+                existingStaff.copy(
+                    initials = generateInitials(userInfo.name),
+                    serviceUUID = userInfo.uuid,
+                    adData = userInfo.serviceData,
+                    name = userInfo.name
+                )
+            } else {
+                // Создаём нового сотрудника
+                StaffMember(
+                    id = userInfo.id.toString(),
+                    initials = generateInitials(userInfo.name),
+                    name = userInfo.name,
+                    isInside = false,
+                    serviceUUID = userInfo.uuid,
+                    adData = userInfo.serviceData,
+                    macAddress = userInfo.macAddress
+                )
+            }
+        }
+
+        // Сохраняем обновлённый список
+        saveStaffList(updatedStaffList)
+
+        android.util.Log.d(
+            "SettingsRepository",
+            "✅ Синхронизировано: ${updatedStaffList.size} сотрудников из ${userInfoList.size} UserInfo"
+        )
+
+        return updatedStaffList
     }
 
     fun saveCurrentUserId(userId: String) {

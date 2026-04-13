@@ -4,6 +4,7 @@ import android.util.Log
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.StaffMember
+import com.antago30.laboratory.model.UserInfo
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,36 +47,6 @@ class StaffStatusUseCase(
         settingsRepo.saveStaffList(updatedList)
     }
 
-    /**
-     * Применяет обновления от контроллера.
-     */
-    fun applyControllerUpdate(
-        controllerName: String,
-        isInside: Boolean,
-        currentTime: Long = System.currentTimeMillis()
-    ) {
-
-        // Ищем сотрудника по маппингу
-        val staffId = controllerNameToStaffId[controllerName.uppercase()] ?: return
-
-        val currentList = _staffList.value
-        val updatedList = currentList.map { staff ->
-            if (staff.id == staffId) {
-                val lastChange = staffLastChangeTime[staff.id] ?: 0
-                // Дебаунс: игнорируем обновления от контроллера, если недавно меняли локально
-                if (currentTime - lastChange < 1000) {
-                    Log.d("BLE_DEBUG", "⏭️ Ignoring controller update for ${staff.name} (local change pending)")
-                    staff
-                } else {
-                    Log.d("BLE_DEBUG", "✅ Updating ${staff.name}: isInside = $isInside")
-                    staff.copy(isInside = isInside, lastUpdated = currentTime)
-                }
-            } else staff
-        }
-        _staffList.value = updatedList
-        settingsRepo.saveStaffList(updatedList)
-    }
-
     fun addStaffMember(newMember: StaffMember): Boolean {
         val currentList = _staffList.value
         if (currentList.any { it.id == newMember.id }) return false
@@ -94,6 +65,81 @@ class StaffStatusUseCase(
         _staffList.value = updatedList
         settingsRepo.saveStaffList(updatedList)
         return true
+    }
+
+    /**
+     * Синхронизирует список сотрудников из UserInfo, полученного от контроллера.
+     * Вызывается при получении USERLIST.
+     */
+    fun syncStaffListFromController(userInfoList: List<UserInfo>) {
+        val currentList = _staffList.value
+        val updatedList = settingsRepo.syncStaffListFromUserInfo(
+            userInfoList = userInfoList,
+            currentStaffList = currentList
+        )
+
+        _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
+
+        Log.d(
+            "StaffStatusUseCase",
+            "✅ Синхронизировано: ${updatedList.size} сотрудников"
+        )
+    }
+
+    /**
+     * Применяет обновления статуса от контроллера (например, PASHA-inside).
+     * Использует маппинг имён из UserInfo, если доступен.
+     */
+    fun applyControllerUpdate(
+        controllerName: String,
+        isInside: Boolean,
+        currentTime: Long = System.currentTimeMillis()
+    ) {
+        val currentList = _staffList.value
+
+        // Сначала пытаемся найти по точному совпадению имени
+        var staffId = controllerNameToStaffId[controllerName.uppercase()]
+
+        // Если не нашли - пытаемся найти по имени в текущем списке
+        if (staffId == null) {
+            val matchedStaff = currentList.find { staff ->
+                staff.name.contains(controllerName, ignoreCase = true) ||
+                    controllerName.contains(staff.name, ignoreCase = true) ||
+                    staff.initials.uppercase() == controllerName.uppercase()
+            }
+            if (matchedStaff != null) {
+                staffId = matchedStaff.id
+                Log.d(
+                    "StaffStatusUseCase",
+                    "🔍 Найдено совпадение: $controllerName -> ${matchedStaff.name} (${matchedStaff.id})"
+                )
+            }
+        }
+
+        if (staffId == null) {
+            Log.w(
+                "StaffStatusUseCase",
+                "⚠️ Не удалось сопоставить: $controllerName"
+            )
+            return
+        }
+
+        val updatedList = currentList.map { staff ->
+            if (staff.id == staffId) {
+                val lastChange = staffLastChangeTime[staff.id] ?: 0
+                // Дебаунс: игнорируем обновления от контроллера, если недавно меняли локально
+                if (currentTime - lastChange < 1000) {
+                    Log.d("BLE_DEBUG", "⏭️ Ignoring controller update for ${staff.name} (local change pending)")
+                    staff
+                } else {
+                    Log.d("BLE_DEBUG", "✅ Updating ${staff.name}: isInside = $isInside")
+                    staff.copy(isInside = isInside, lastUpdated = currentTime)
+                }
+            } else staff
+        }
+        _staffList.value = updatedList
+        settingsRepo.saveStaffList(updatedList)
     }
 
     private fun buildStaffCommand(nickname: String, isInside: Boolean): String {

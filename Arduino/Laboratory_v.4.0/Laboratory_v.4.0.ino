@@ -291,7 +291,7 @@ void Task1code( void * pvParameters ){
     // Отправка служебных данных
     if (millis() -  SendCommandTime > 1000){
       SendCommandTime = millis();
-      //sendCommand();
+      sendCommand();
     }
 
     // Попытка восстановить соединение с JDY-33
