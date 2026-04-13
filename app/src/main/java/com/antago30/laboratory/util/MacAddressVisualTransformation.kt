@@ -16,23 +16,29 @@ class MacAddressVisualTransformation : VisualTransformation {
             if (i % 2 == 1 && i < 11) out += ":"
         }
 
-        val offsetTranslator = object : OffsetMapping {
+        val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
-                val hexCount = minOf(offset, 12)
-                val colonsBefore = if (hexCount > 0) (hexCount - 1) / 2 else 0
-                return hexCount + colonsBefore
+                // original — позиция в тексте без двоеточий (0-12 символов)
+                val hexPos = minOf(offset, 12)
+                // Сколько двоеточий будет перед этой позицией
+                val colons = if (hexPos > 0) (hexPos - 1) / 2 else 0
+                return hexPos + colons
             }
 
             override fun transformedToOriginal(offset: Int): Int {
+                // transformed — позиция в тексте с двоеточиями (0-17 символов)
                 if (offset <= 0) return 0
-                val hexPositions = offset - (offset - 1) / 2
-                return minOf(hexPositions, 12)
+                // Сколько hex-символов до этой позиции
+                // Каждые 3 символа в transformed = 2 hex + 1 двоеточие
+                val groups = offset / 3
+                val remainder = offset % 3
+                val hexCount = groups * 2 + minOf(remainder, 2)
+                return minOf(hexCount, 12)
             }
         }
 
-        return TransformedText(AnnotatedString(out), offsetTranslator)
+        return TransformedText(AnnotatedString(out), offsetMapping)
     }
-
 }
 
 /**

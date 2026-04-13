@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.model.UserInfo
 import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
+import com.antago30.laboratory.util.formatMacAddress
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -108,7 +109,7 @@ fun UserCard(
 
                     // Имя
                     Text(
-                        text = "${user.id}. ${user.name}",
+                        text = user.name,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFFE8F0FE)
@@ -121,7 +122,7 @@ fun UserCard(
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
                         Text(
-                            text = "MAC: ${user.macAddress}",
+                            text = "MAC: ${formatMacAddress(user.macAddress)}",
                             fontSize = 11.sp,
                             color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else Primary.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Medium,

@@ -137,7 +137,11 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
       outArray[count].uuid = String(temp.uuid);
       outArray[count].serviceDataHex = String(temp.serviceDataHex);
       outArray[count].macAddress = String(temp.macAddress);
-      
+
+      // Нормализуем MAC при загрузке
+      outArray[count].macAddress.replace("-", ":");
+      outArray[count].macAddress.toUpperCase();
+
       // Runtime-поля
       outArray[count].location = "inside";
       outArray[count].rssiThreshold = -70;
@@ -403,21 +407,25 @@ void checkEntryExitStatus() {
 void scanForTrustedDevices() {
   BLEScanResults* results = pBLEScan->start(SCAN_TIME, false);
   int devicesIndex = 0;
-  
-  for (int i = 0; i < 10; i++) { 
+
+  for (int i = 0; i < 10; i++) {
     devicesDetected[i].name = "";
     devicesDetected[i].rssi = 0;
   }
-  
+
   for (int i = 0; i < results->getCount(); i++) {
     BLEAdvertisedDevice device = results->getDevice(i);
     String mac = device.getAddress().toString().c_str();
     int rssi = device.getRSSI();
 
+    // Нормализуем MAC-адрес
+    mac.replace(":", "");
+    mac.toUpperCase();
+  
     // Проверка по MAC для всех устройств
-    for (int j = 0; j < trustedDevicesCount; j++) { 
+    for (int j = 0; j < trustedDevicesCount; j++) {
       if (mac.equalsIgnoreCase(trustedDevices[j].macAddress)) {
-        
+
         if (rssi >= trustedDevices[j].rssiThreshold) {
           log("Обнаружен: " + trustedDevices[j].name + ", RSSI: " + String(rssi));
           devicesDetected[devicesIndex].name = trustedDevices[j].name;
@@ -541,7 +549,11 @@ void addNewUserFromCommand(String params) {
   String serviceData = params.substring(delimiterIndex[2]+1, delimiterIndex[3]);
   String mac = params.substring(delimiterIndex[3]+1, delimiterIndex[4]);
   int rssiThreshold = params.substring(delimiterIndex[4]+1).toInt();
-  
+
+  // Нормализуем MAC-адрес: заменяем дефисы на двоеточия, приводим к верхнему регистру
+  mac.replace("-", ":");
+  mac.toUpperCase();
+
   // Проверяем лимит
   if (trustedDevicesCount >= MAX_USERS) {
     log("Ошибка: достигнут лимит пользователей (" + String(MAX_USERS) + ")");
@@ -586,7 +598,7 @@ void addNewUserFromCommand(String params) {
       trustedDevices[idx].rssiThreshold = rssiThreshold;
     }
 
-    log("Пользователь '" + name + "' добавлен (ID:" + String(id) + ")");
+    log("Пользователь '" + name + "' добавлен (ID:" + String(id) + ") MAC: " + mac);
   } else {
     log("Ошибка сохранения в NVS");
   }

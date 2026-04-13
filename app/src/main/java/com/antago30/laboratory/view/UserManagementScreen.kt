@@ -172,7 +172,7 @@ fun UserManagementScreen(
                     onUserNameChange = { userName = it },
                     isConnected = isConnected == ConnectionState.READY,
                     onMacAddressChange = { input ->
-                        macAddress = input.uppercase()
+                        macAddress = input
                     },
                     onRssiThresholdChange = {
                         rssiThreshold = it.filter { c -> c.isDigit() || c == '-' }
