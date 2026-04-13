@@ -657,7 +657,7 @@ void sendUserListChunked() {
 void commandHandler () {
   if (rxValue.length() > 0) {
     String cmd = String(rxValue.c_str());
-    //log("Получена команда: " + cmd);
+    log("Получена команда: " + cmd);
     
     if (cmd.equalsIgnoreCase("OPENDOOR")) {
       openDoor(0, "|APP|");

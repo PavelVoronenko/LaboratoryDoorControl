@@ -19,29 +19,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import com.antago30.laboratory.model.StaffMember
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SettingsScreenViewModel(
     private val settingsRepo: SettingsRepository,
-    private val connectionManager: BleConnectionManager,
-    private val defaultStaffList: List<StaffMember>
+    private val connectionManager: BleConnectionManager
 ) : ViewModel() {
     private var appContext: Context? = null
     // LE Scanner
     private var bleScanner: BleScanner? = null
     private var scanJob: Job? = null
     private var scanStopTimerJob: Job? = null
-
-    private val _currentUserId = MutableStateFlow(settingsRepo.getCurrentUserId())
-    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
-
-    private val _staffList = MutableStateFlow(
-        settingsRepo.getStaffList(fallback = defaultStaffList)
-    )
-    val staffList: StateFlow<List<StaffMember>> = _staffList.asStateFlow()
 
     private val _selectedDeviceAddress = MutableStateFlow(settingsRepo.getSelectedDeviceAddress())
     val selectedDeviceAddress: StateFlow<String?> = _selectedDeviceAddress.asStateFlow()
@@ -172,20 +162,6 @@ class SettingsScreenViewModel(
     override fun onCleared() {
         super.onCleared()
         stopDeviceScanInternal()
-    }
-
-    fun selectCurrentUser(staffMember: StaffMember) {
-        _currentUserId.value = staffMember.id
-        settingsRepo.saveCurrentUserId(staffMember.id)
-    }
-
-    fun clearCurrentUser() {
-        _currentUserId.value = null
-        settingsRepo.clearCurrentUserId()
-    }
-
-    fun refreshStaffList() {
-        _staffList.value = settingsRepo.getStaffList(fallback = defaultStaffList)
     }
 
     fun updateSelectedDevice(address: String?) {

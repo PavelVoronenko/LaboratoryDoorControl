@@ -3,13 +3,7 @@ package com.antago30.laboratory.view
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,11 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog.BleDeviceSelectionDialog
-import com.antago30.laboratory.ui.component.settingsScreen.staffSelectionDialog.StaffSelectionDialog
-import com.antago30.laboratory.ui.component.userManagementScreen.UserManagementFab
 import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import kotlinx.coroutines.launch
@@ -60,15 +51,9 @@ fun SettingsScreen(
 
     // Состояния диалогов
     var showDeviceDialog by remember { mutableStateOf(false) }
-    var showStaffDialog by remember { mutableStateOf(false) }
 
     // Состояния из ViewModel
-    val currentUserId by viewModel.currentUserId.collectAsState()
-    val staffList by viewModel.staffList.collectAsState()
     val selectedDeviceAddress by viewModel.selectedDeviceAddress.collectAsState()
-
-    // Находим объект текущего пользователя для отображения
-    val currentUser = staffList.find { it.id == currentUserId }
 
     // Лаунчер для запроса разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -107,26 +92,12 @@ fun SettingsScreen(
         )
     }
 
-    // === Диалог выбора сотрудника ===
-    if (showStaffDialog) {
-        StaffSelectionDialog(
-            staffList = staffList,
-            currentUserId = currentUserId,
-            onStaffSelected = { staff ->
-                viewModel.selectCurrentUser(staff)
-                showStaffDialog = false
-            },
-            onDismiss = { showStaffDialog = false }
-        )
-    }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             SettingsHeader(
                 onBack = onBack,
                 onBleDeviceClick = {
-                    // Логика открытия диалога BLE
                     val hasPermissions = viewModel.checkBlePermissions(context)
                     if (hasPermissions) {
                         viewModel.startDeviceScan()
@@ -142,9 +113,7 @@ fun SettingsScreen(
                         }
                     }
                 },
-                onUserClick = { showStaffDialog = true },
-                showBleButton = true,
-                showUserButton = true
+                showBleButton = true
             )
         },
         floatingActionButton = {
@@ -168,7 +137,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (selectedDeviceAddress == null && currentUser == null) {
+            if (selectedDeviceAddress == null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -177,12 +146,12 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     androidx.compose.material3.Text(
-                        text = "Выберите устройство и пользователя",
+                        text = "Выберите устройство",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                     androidx.compose.material3.Text(
-                        text = "Нажмите на иконки 🔗 или 👤 в шапке экрана",
+                        text = "Нажмите на иконку 🔗 в шапке экрана",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )

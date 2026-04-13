@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,18 +33,14 @@ fun SettingsHeader(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onBleDeviceClick: () -> Unit = {},
-    onUserClick: () -> Unit = {},
-    showBleButton: Boolean = true,
-    showUserButton: Boolean = true
+    showBleButton: Boolean = true
 ) {
     val scope = rememberCoroutineScope()
     var backScale by remember { mutableFloatStateOf(1f) }
     var bleScale by remember { mutableFloatStateOf(1f) }
-    var userScale by remember { mutableFloatStateOf(1f) }
 
     val animatedBackScale by animateFloatAsState(targetValue = backScale)
     val animatedBleScale by animateFloatAsState(targetValue = bleScale)
-    val animatedUserScale by animateFloatAsState(targetValue = userScale)
 
     Box(
         modifier = modifier
@@ -82,7 +77,7 @@ fun SettingsHeader(
             color = Primary,
         )
 
-        // === Правая часть: кнопки BLE и Пользователь ===
+        // === Правая часть: кнопка BLE ===
         Row(
             modifier = Modifier.align(Alignment.CenterEnd),
             verticalAlignment = Alignment.CenterVertically,
@@ -106,29 +101,6 @@ fun SettingsHeader(
                     Icon(
                         imageVector = Icons.Default.Bluetooth,
                         contentDescription = "Выбрать BLE-устройство",
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-            // Кнопка пользователя
-            if (showUserButton) {
-                IconButton(
-                    onClick = {
-                        userScale = 0.7f
-                        scope.launch {
-                            delay(150)
-                            userScale = 1f
-                        }
-                        onUserClick()
-                    },
-                    modifier = Modifier
-                        .scale(animatedUserScale)
-                        .size(44.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Выбрать текущего пользователя",
                         modifier = Modifier.size(28.dp)
                     )
                 }
