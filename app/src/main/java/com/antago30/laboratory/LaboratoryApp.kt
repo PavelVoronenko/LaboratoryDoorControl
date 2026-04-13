@@ -48,7 +48,10 @@ fun LaboratoryApp(
             UserManagementScreen(
                 viewModel = userManagementViewModel,
                 onBack = { navController.popBackStack() },
-                connectionManager = connectionManager
+                connectionManager = connectionManager,
+                onUserChanged = {
+                    labControlViewModel.onUserSelected()
+                }
             )
         }
     }

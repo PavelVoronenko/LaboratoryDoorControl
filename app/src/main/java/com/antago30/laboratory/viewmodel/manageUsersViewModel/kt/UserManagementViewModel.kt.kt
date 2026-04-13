@@ -32,6 +32,26 @@ class UserManagementViewModel(
     private val _isAddingUser = MutableStateFlow(false)
     val isAddingUser: StateFlow<Boolean> = _isAddingUser.asStateFlow()
 
+    // === Текущий выбранный пользователь ===
+    private val _currentUserId = MutableStateFlow<String?>(
+        connectionManager.getSettingsRepository().getCurrentUserId()
+    )
+    val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
+
+    fun selectCurrentUser(userInfo: UserInfo) {
+        _currentUserId.value = userInfo.id.toString()
+        connectionManager.getSettingsRepository().saveCurrentUserId(userInfo.id.toString())
+        connectionManager.getSettingsRepository().saveCurrentUserInfo(userInfo)
+        Log.d("UserManagementVM", "✅ Выбран пользователь: ${userInfo.name} (ID: ${userInfo.id})")
+    }
+
+    fun clearCurrentUser() {
+        _currentUserId.value = null
+        connectionManager.getSettingsRepository().clearCurrentUserId()
+        connectionManager.getSettingsRepository().clearCurrentUserInfo()
+        Log.d("UserManagementVM", "🗑️ Текущий пользователь очищен")
+    }
+
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>() // key: index, value: data
     private var userListTotalChunks = 0

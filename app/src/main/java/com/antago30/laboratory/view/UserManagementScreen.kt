@@ -38,13 +38,15 @@ fun UserManagementScreen(
     viewModel: UserManagementViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    connectionManager: BleConnectionManager
+    connectionManager: BleConnectionManager,
+    onUserChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val users by viewModel.users.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val showError by viewModel.showError.collectAsState()
     val isAddingUser by viewModel.isAddingUser.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
 
     // Состояния формы
     var showAddForm by remember { mutableStateOf(false) }
@@ -202,7 +204,12 @@ fun UserManagementScreen(
                         users = users,
                         onDeleteClick = { viewModel.deleteUser(it) },
                         isConnected = isConnected == ConnectionState.READY,
-                        modifier = Modifier.fillMaxSize().padding(bottom = 80.dp)
+                        currentUserId = currentUserId,
+                        onUserSelected = { userInfo ->
+                            viewModel.selectCurrentUser(userInfo)
+                            onUserChanged()
+                        },
+                        modifier = Modifier.fillMaxSize()
                     )
 
                     if (isLoading) {

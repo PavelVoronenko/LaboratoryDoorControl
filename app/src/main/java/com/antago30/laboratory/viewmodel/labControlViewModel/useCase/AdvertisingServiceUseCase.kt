@@ -38,10 +38,10 @@ class AdvertisingServiceUseCase(
             return
         }
 
-        val currentUser = settingsRepo.getCurrentUser(settingsRepo.getStaffList(emptyList()))
-        val serviceUuidStr = currentUser?.serviceUUID?.takeIf { it.isNotBlank() }
+        val currentUserInfo = settingsRepo.getCurrentUserInfo()
+        val serviceUuidStr = currentUserInfo?.uuid?.takeIf { it.isNotBlank() }
             ?: "0000ff12-0000-1000-8000-00805f9b34fb"
-        val adData = currentUser?.adData?.takeIf { it.isNotBlank() }
+        val adData = currentUserInfo?.serviceData?.takeIf { it.isNotBlank() }
             ?: "J7hs2Ak98g"
 
         isStarting = true

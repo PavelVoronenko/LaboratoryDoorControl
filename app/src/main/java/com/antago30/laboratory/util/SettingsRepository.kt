@@ -23,6 +23,7 @@ class SettingsRepository(context: Context) {
         private const val SELECTED_DEVICE_ADDRESS = "selected_device_address"
         private const val STAFF_LIST_JSON = "staff_list_json"
         private const val CURRENT_USER_ID = "current_user_id"
+        private const val CURRENT_USER_INFO_JSON = "current_user_info_json"
         private const val CACHED_USER_INFO_LIST_JSON = "cached_user_info_list_json"
     }
 
@@ -62,7 +63,7 @@ class SettingsRepository(context: Context) {
     }
 
     fun getStaffList(fallback: List<StaffMember>): List<StaffMember> {
-        val json = prefs.getString(STAFF_LIST_JSON, null)
+        val json = prefs.getString(CACHED_USER_INFO_LIST_JSON, null)
         return if (!json.isNullOrBlank()) {
             try {
                 val type = object : TypeToken<List<StaffMember>>() {}.type
@@ -138,6 +139,37 @@ class SettingsRepository(context: Context) {
         prefs.edit {
             remove(CURRENT_USER_ID)
         }
+    }
+
+    // === Методы для сохранения выбранного UserInfo ===
+
+    fun saveCurrentUserInfo(userInfo: UserInfo) {
+        val json = gson.toJson(userInfo)
+        prefs.edit {
+            putString(CURRENT_USER_INFO_JSON, json)
+        }
+        _currentUserIdFlow.value = userInfo.id.toString()
+    }
+
+    fun getCurrentUserInfo(): UserInfo? {
+        val json = prefs.getString(CURRENT_USER_INFO_JSON, null)
+        return if (!json.isNullOrBlank()) {
+            try {
+                gson.fromJson(json, UserInfo::class.java)
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsRepository", "Failed to parse current UserInfo", e)
+                null
+            }
+        } else {
+            null
+        }
+    }
+
+    fun clearCurrentUserInfo() {
+        prefs.edit {
+            remove(CURRENT_USER_INFO_JSON)
+        }
+        _currentUserIdFlow.value = null
     }
 
     // Методы для кэширования UserInfo от контроллера

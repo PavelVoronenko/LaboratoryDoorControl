@@ -106,6 +106,12 @@ class LabControlViewModel(
         advertisingUseCase.syncState()
     }
 
+    fun onUserSelected() {
+        if (advertisingUseCase.isRunning.value) {
+            advertisingUseCase.onUserChanged()
+        }
+    }
+
     fun addNewStaffMember(newMember: StaffMember): Boolean {
         return staffUseCase.addStaffMember(newMember)
     }

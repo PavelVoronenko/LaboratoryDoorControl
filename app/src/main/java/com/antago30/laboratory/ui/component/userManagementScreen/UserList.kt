@@ -26,6 +26,8 @@ fun UserList(
     users: List<UserInfo>,
     onDeleteClick: (Int) -> Unit,
     isConnected: Boolean = true,
+    currentUserId: String? = null,
+    onUserSelected: (UserInfo) -> Unit = {}
 
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -71,7 +73,9 @@ fun UserList(
                 UserCard(
                     user = user,
                     onDeleteClick = { onDeleteClick(user.id) },
-                    isConnected = isConnected
+                    isConnected = isConnected,
+                    isSelected = user.id.toString() == currentUserId,
+                    onSelect = { onUserSelected(user) }
                 )
             }
         }
