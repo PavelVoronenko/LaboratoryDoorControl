@@ -53,4 +53,14 @@ class FunctionControlUseCase(
 
     fun getFunctionState(id: String): Boolean =
         _functions.value.find { it.id == id }?.isEnabled ?: false
+
+    fun setFunctionEnabled(id: String, enabled: Boolean) {
+        val currentList = _functions.value
+        val updatedList = currentList.map { func ->
+            if (func.id == id && func.isEnabled != enabled) {
+                func.copy(isEnabled = enabled)
+            } else func
+        }
+        _functions.value = updatedList
+    }
 }

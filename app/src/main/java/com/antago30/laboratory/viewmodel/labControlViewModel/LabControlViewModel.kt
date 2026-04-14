@@ -15,6 +15,7 @@ import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.BleDataPars
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.FunctionControlUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.StaffStatusUseCase
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -42,6 +43,10 @@ class LabControlViewModel(
     private var lastKnownUserId: String? = null
 
     val isAdvertising: StateFlow<Boolean> = advertisingUseCase.isRunning
+
+    // Flow для показа toast уведомления от контроллера
+    private val _controllerToastMessage = MutableStateFlow<String?>(null)
+    val controllerToastMessage: StateFlow<String?> = _controllerToastMessage
 
     // === Буфер для сборки USERLIST чанков ===
     private val userListChunks = mutableMapOf<Int, String>()
@@ -78,12 +83,25 @@ class LabControlViewModel(
         viewModelScope.launch {
             connectionManager.characteristicData.collect { data ->
                 val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
+                Log.d("LabControlVM", "📥 Received: '$response' (UUID: ${data.uuid})")
 
                 // Проверяем, это USERLIST чанк?
                 if (response.startsWith("USERLIST_PKT:") || response.startsWith("USERLIST:")) {
                     handleUserListChunk(response)
                 } else {
                     parsingUseCase.processData(data)
+                }
+            }
+        }
+
+        // Обработка Terminal characteristic (логи от контроллера)
+        viewModelScope.launch {
+            connectionManager.terminalData.collect { data ->
+                val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
+                // Показываем toast для сообщений об освещении и JDE-33
+                if (response.contains("Освещение") || 
+                    response.contains("JDE-33")) {
+                    _controllerToastMessage.value = response
                 }
             }
         }
@@ -257,6 +275,13 @@ class LabControlViewModel(
     }
 
     fun startBleAdvertising() {
+        // Проверяем выбранного пользователя перед запуском
+        if (getCurrentUser() == null) {
+            showSystemMessage("Выберите текущего сотрудника")
+            // Возвращаем тумблер в выключенное состояние
+            functionUseCase.setFunctionEnabled("broadcast", false)
+            return
+        }
         advertisingUseCase.start()
     }
 
@@ -283,5 +308,13 @@ class LabControlViewModel(
         return settingsRepo.getCurrentUserInfo()?.let { userInfo ->
             staffListValue.find { it.name.equals(userInfo.name, ignoreCase = true) }
         }
+    }
+
+    fun showSystemMessage(message: String) {
+        _controllerToastMessage.value = message
+    }
+
+    fun clearControllerToastMessage() {
+        _controllerToastMessage.value = null
     }
 }

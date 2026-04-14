@@ -1,7 +1,7 @@
 #include "DoorControl.h"
 #include "DeviceStorage.h"
 
-// ------------------ Forward declarations ------------------
+// Forward declaration
 void log(String message);
 
 // ------------------ Глобальные переменные ------------------

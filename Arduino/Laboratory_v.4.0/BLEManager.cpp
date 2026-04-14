@@ -63,8 +63,10 @@ void initBLEServer() {
   BLE2902 *pBLE2902 = new BLE2902();
   pBLE2902->setNotifications(true);
   pCharacteristic->addDescriptor(pBLE2902);
-  
-  Terminal->addDescriptor(new BLE2902());
+
+  BLE2902 *terminalBLE2902 = new BLE2902();
+  terminalBLE2902->setNotifications(true);
+  Terminal->addDescriptor(terminalBLE2902);
   Terminal->setCallbacks(new CharacteristicCallBack());
   pService->start();
 

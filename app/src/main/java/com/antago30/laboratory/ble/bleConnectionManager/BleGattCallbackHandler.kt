@@ -29,6 +29,9 @@ class BleGattCallbackHandler(
     private val _characteristicUpdates = MutableSharedFlow<CharacteristicData>()
     val characteristicUpdates: SharedFlow<CharacteristicData> = _characteristicUpdates.asSharedFlow()
 
+    private val _terminalUpdates = MutableSharedFlow<CharacteristicData>()
+    val terminalUpdates: SharedFlow<CharacteristicData> = _terminalUpdates.asSharedFlow()
+
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
         when (newState) {
@@ -81,7 +84,12 @@ class BleGattCallbackHandler(
             value = value.toList()
         )
         coroutineScope.launch {
-            _characteristicUpdates.emit(data)
+            // Terminal characteristic (e3223119-9445-4e96-a4a1-85358c4046a2)
+            if (characteristic.uuid.toString().contains("e3223119")) {
+                _terminalUpdates.emit(data)
+            } else {
+                _characteristicUpdates.emit(data)
+            }
         }
     }
 

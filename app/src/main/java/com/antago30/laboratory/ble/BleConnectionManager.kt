@@ -56,6 +56,7 @@ class BleConnectionManager(
     val connectionStateFlow: StateFlow<ConnectionState> = connectionState.state
     val doorCommandResult: SharedFlow<CommandResult> = callbackHandler.commandResults
     val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
+    val terminalData: SharedFlow<CharacteristicData> = callbackHandler.terminalUpdates
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): ConnectResult {
@@ -118,7 +119,9 @@ class BleConnectionManager(
         }
 
         val cccdUuid = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
-        val descriptor = characteristic.getDescriptor(cccdUuid) ?: return false
+        val descriptor = characteristic.getDescriptor(cccdUuid) ?: run {
+            return false
+        }
 
         // Определяем тип уведомления
         val enableValue =

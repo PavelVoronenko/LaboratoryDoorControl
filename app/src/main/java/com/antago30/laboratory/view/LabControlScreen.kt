@@ -2,7 +2,6 @@ package com.antago30.laboratory.view
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
@@ -23,6 +21,7 @@ import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
 import com.antago30.laboratory.ui.component.labControlScreen.TopBar
 import com.antago30.laboratory.ui.theme.Primary
+import com.antago30.laboratory.util.ControllerMessageBanner
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -32,7 +31,7 @@ fun LabControlScreen(
     onSettingsClick: () -> Unit,
     viewModel: LabControlViewModel,
 ) {
-    val context = LocalContext.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val isEnabled by viewModel.isInterfaceEnabled.collectAsState()
 
     val staffList by viewModel.staffList.collectAsState()
@@ -44,32 +43,15 @@ fun LabControlScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Разрешение получено, проверяем пользователя и запускаем рекламу
-            if (viewModel.getCurrentUser() == null) {
-                Toast.makeText(context, "Выберите текущего сотрудника", Toast.LENGTH_SHORT).apply {
-                    setGravity(android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.BOTTOM, 0, -10)
-                }.show()
-            } else {
-                viewModel.startBleAdvertising()
-            }
-        } else {
-            // Разрешение не получено
+            viewModel.startBleAdvertising()
         }
     }
 
-    // Лаунчер для запроса POST_NOTIFICATIONS
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            // Разрешение получено, проверяем пользователя и запускаем рекламу
-            if (viewModel.getCurrentUser() == null) {
-                Toast.makeText(context, "Выберите текущего сотрудника", Toast.LENGTH_SHORT).apply {
-                    setGravity(android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.BOTTOM, 0, -10)
-                }.show()
-            } else {
-                viewModel.startBleAdvertising()
-            }
+            viewModel.startBleAdvertising()
         }
     }
 
@@ -78,7 +60,7 @@ fun LabControlScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        val (topBar, staffPanel, functionsPanel, loadingIndicator, openDoorButton) = createRefs()
+        val (topBar, staffPanel, functionsPanel, loadingIndicator, messageBanner, openDoorButton) = createRefs()
 
         TopBar(
             isBroadcasting = isAdvertising,
@@ -174,6 +156,19 @@ fun LabControlScreen(
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
                 width = Dimension.fillToConstraints
+            }
+        )
+
+        // Баннер с сообщениями от контроллера
+        val controllerMessage by viewModel.controllerToastMessage.collectAsState()
+
+        ControllerMessageBanner(
+            message = controllerMessage,
+            onDismiss = { viewModel.clearControllerToastMessage() },
+            modifier = Modifier.constrainAs(messageBanner) {
+                bottom.linkTo(openDoorButton.top, margin = 16.dp)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
             }
         )
     }
