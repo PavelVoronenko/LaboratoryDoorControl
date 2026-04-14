@@ -19,8 +19,7 @@ fun FunctionsPanel(
     functions: List<FunctionItem>,
     onFunctionToggled: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    isConnectionEnabled: Boolean = true,
-    isAdvertising: Boolean = false
+    isConnectionEnabled: Boolean = true
 ) {
     Card(
         modifier = modifier,
@@ -33,7 +32,7 @@ fun FunctionsPanel(
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
             functions.forEach { item ->
                 val isToggleEnabled = if (item.requiresConnection) isConnectionEnabled else true
-                val actualChecked = if (item.id == "broadcast") isAdvertising else item.isEnabled
+                val actualChecked = item.isEnabled
 
                 ModeItem(
                     label = item.label,

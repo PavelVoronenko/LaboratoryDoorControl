@@ -47,14 +47,6 @@ fun LabControlScreen(
         }
     }
 
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            viewModel.startBleAdvertising()
-        }
-    }
-
     ConstraintLayout(
         modifier = modifier
             .fillMaxSize()
@@ -89,34 +81,21 @@ fun LabControlScreen(
 
         FunctionsPanel(
             functions = functions,
-            isAdvertising = isAdvertising,
             onFunctionToggled = { id, newState ->
                 if (id == "broadcast") {
-                    viewModel.toggleFunction(id)
-
                     if (newState) {
-                        // Пользователь включил → запускаем рекламу
-                        val hasNotificationPermission =
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.POST_NOTIFICATIONS
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.BLUETOOTH_ADVERTISE
                             ) == PackageManager.PERMISSION_GRANTED
-
-                        if (hasNotificationPermission) {
-                            if (androidx.core.content.ContextCompat.checkSelfPermission(
-                                    context, Manifest.permission.BLUETOOTH_ADVERTISE
-                                ) == PackageManager.PERMISSION_GRANTED
-                            ) {
-                                viewModel.startBleAdvertising()
-                            } else {
-                                advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
-                            }
+                        ) {
+                            viewModel.startBleAdvertising()
                         } else {
-                            // Запрашиваем разрешение на уведомления
-                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
                         }
                     } else {
                         // Пользователь выключил → останавливаем рекламу
                         viewModel.stopBleAdvertising()
+                        viewModel.toggleFunction(id)  // Обновляем тумблер
                     }
                 } else {
                     viewModel.toggleFunction(id)

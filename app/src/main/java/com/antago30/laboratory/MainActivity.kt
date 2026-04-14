@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -13,6 +14,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ui.theme.LaboratoryTheme
+import com.antago30.laboratory.util.NotificationPermissionHelper
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModelFactory
@@ -33,6 +35,15 @@ class MainActivity : ComponentActivity() {
     private val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private lateinit var connectionManager: BleConnectionManager
     private lateinit var appLifecycleObserver: AppLifecycleObserver
+
+    // Лаунчер для запроса разрешения на уведомления
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            android.util.Log.d("MainActivity", "Notification permission granted")
+        }
+    }
 
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,6 +83,10 @@ class MainActivity : ComponentActivity() {
         )[UserManagementViewModel::class.java]
 
         enableEdgeToEdge()
+        
+        // Запрашиваем разрешение на уведомления при первом запуске
+        NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher)
+
         setContent {
             LaboratoryTheme {
                 Scaffold(

@@ -56,7 +56,6 @@ class BleAdvertiser(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
     fun stopAdvertising() {
-        if (!isAdvertising) return
         advertiser?.stopAdvertising(advertiseCallback)
         isAdvertising = false
     }

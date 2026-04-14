@@ -55,6 +55,11 @@ class LabControlViewModel(
     private val chunckTimeoutMs = 2000L
 
     init {
+        // Синхронизация состояния тумблера "Вещание" с фактическим состоянием сервиса
+        advertisingUseCase.onServiceStateChanged = { isRunning ->
+            functionUseCase.setFunctionEnabled("broadcast", isRunning)
+        }
+
         @Suppress("MissingPermission")
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
@@ -278,11 +283,12 @@ class LabControlViewModel(
         // Проверяем выбранного пользователя перед запуском
         if (getCurrentUser() == null) {
             showSystemMessage("Выберите текущего сотрудника")
-            // Возвращаем тумблер в выключенное состояние
             functionUseCase.setFunctionEnabled("broadcast", false)
             return
         }
         advertisingUseCase.start()
+        // Обновляем тумблер на включено
+        functionUseCase.setFunctionEnabled("broadcast", true)
     }
 
     fun stopBleAdvertising() {

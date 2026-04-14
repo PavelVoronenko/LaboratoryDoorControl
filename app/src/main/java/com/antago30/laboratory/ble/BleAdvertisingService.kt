@@ -14,12 +14,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 import java.util.UUID
 
 class BleAdvertisingService : Service() {
 
-    private lateinit var bleAdvertiser: BleAdvertiser
+    private var bleAdvertiser: BleAdvertiser? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private var currentServiceUuid: UUID? = null
@@ -80,11 +79,10 @@ class BleAdvertisingService : Service() {
                     currentAdData!!
                 )
 
-                serviceScope.launch {
-                    kotlinx.coroutines.delay(100)
-                    bleAdvertiser.startAdvertising()
-                }
+                bleAdvertiser?.startAdvertising()
             } catch (e: Exception) {
+                android.util.Log.e("BleAdvertisingService", "Error starting advertising", e)
+                stopSelf()
                 return START_NOT_STICKY
             }
         }
@@ -95,10 +93,12 @@ class BleAdvertisingService : Service() {
     @SuppressLint("MissingPermission")
     override fun onDestroy() {
         serviceScope.cancel()
-        try {
-            bleAdvertiser.stopAdvertising()
-        } catch (e: Exception) {
-            android.util.Log.e("BleAdvertisingService", "Error stopping advertising", e)
+        bleAdvertiser?.let { advertiser ->
+            try {
+                advertiser.stopAdvertising()
+            } catch (e: Exception) {
+                android.util.Log.e("BleAdvertisingService", "Error stopping advertising", e)
+            }
         }
         super.onDestroy()
         stopForeground(STOP_FOREGROUND_REMOVE)
