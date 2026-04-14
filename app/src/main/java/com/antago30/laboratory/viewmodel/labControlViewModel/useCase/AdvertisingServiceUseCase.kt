@@ -2,6 +2,8 @@ package com.antago30.laboratory.viewmodel.labControlViewModel.useCase
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import com.antago30.laboratory.ble.BleAdvertisingService
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -22,9 +24,6 @@ class AdvertisingServiceUseCase(
 
     private var appContext: Context? = null
 
-    // Callback для уведомления UI о необходимости показать toast
-    var onUserSelectionRequired: (() -> Unit)? = null
-
     fun setContext(context: Context) {
         appContext = context.applicationContext
         syncState()
@@ -34,6 +33,15 @@ class AdvertisingServiceUseCase(
         if (isStarting) return
 
         val ctx = appContext ?: return
+
+        // Проверяем разрешение на уведомления (Android 13+)
+        val hasNotificationPermission =
+            ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasNotificationPermission) {
+            isStarting = false
+            return
+        }
 
         if (checkIfServiceIsRunning(ctx)) {
             _isRunning.value = true
@@ -45,7 +53,6 @@ class AdvertisingServiceUseCase(
         
         // Проверяем, выбран ли текущий пользователь
         if (currentUserInfo == null) {
-            onUserSelectionRequired?.invoke()
             isStarting = false
             return
         }

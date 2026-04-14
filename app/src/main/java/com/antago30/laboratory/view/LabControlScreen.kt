@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -45,9 +44,32 @@ fun LabControlScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.startBleAdvertising()
+            // Разрешение получено, проверяем пользователя и запускаем рекламу
+            if (viewModel.getCurrentUser() == null) {
+                Toast.makeText(context, "Выберите текущего сотрудника", Toast.LENGTH_SHORT).apply {
+                    setGravity(android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.BOTTOM, 0, -10)
+                }.show()
+            } else {
+                viewModel.startBleAdvertising()
+            }
         } else {
             // Разрешение не получено
+        }
+    }
+
+    // Лаунчер для запроса POST_NOTIFICATIONS
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            // Разрешение получено, проверяем пользователя и запускаем рекламу
+            if (viewModel.getCurrentUser() == null) {
+                Toast.makeText(context, "Выберите текущего сотрудника", Toast.LENGTH_SHORT).apply {
+                    setGravity(android.view.Gravity.CENTER_HORIZONTAL or android.view.Gravity.BOTTOM, 0, -10)
+                }.show()
+            } else {
+                viewModel.startBleAdvertising()
+            }
         }
     }
 
@@ -92,13 +114,23 @@ fun LabControlScreen(
 
                     if (newState) {
                         // Пользователь включил → запускаем рекламу
-                        if (androidx.core.content.ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.BLUETOOTH_ADVERTISE
+                        val hasNotificationPermission =
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.POST_NOTIFICATIONS
                             ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            viewModel.startBleAdvertising()
+
+                        if (hasNotificationPermission) {
+                            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.BLUETOOTH_ADVERTISE
+                                ) == PackageManager.PERMISSION_GRANTED
+                            ) {
+                                viewModel.startBleAdvertising()
+                            } else {
+                                advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
+                            }
                         } else {
-                            advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
+                            // Запрашиваем разрешение на уведомления
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         }
                     } else {
                         // Пользователь выключил → останавливаем рекламу
@@ -144,15 +176,5 @@ fun LabControlScreen(
                 width = Dimension.fillToConstraints
             }
         )
-    }
-
-    // Обработка toast сообщений
-    val toastMessage by viewModel.showToastMessage.collectAsState()
-
-    LaunchedEffect(toastMessage) {
-        if (toastMessage != null) {
-            Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
-            viewModel.clearToastMessage()
-        }
     }
 }

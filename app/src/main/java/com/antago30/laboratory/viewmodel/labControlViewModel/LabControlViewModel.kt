@@ -15,7 +15,6 @@ import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.BleDataPars
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.FunctionControlUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.StaffStatusUseCase
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -44,10 +43,6 @@ class LabControlViewModel(
 
     val isAdvertising: StateFlow<Boolean> = advertisingUseCase.isRunning
 
-    // Flow для показа toast уведомления
-    private val _showToastMessage = MutableStateFlow<String?>(null)
-    val showToastMessage: StateFlow<String?> = _showToastMessage
-
     // === Буфер для сборки USERLIST чанков ===
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListReceiving = false
@@ -55,13 +50,6 @@ class LabControlViewModel(
     private val chunckTimeoutMs = 2000L
 
     init {
-        // Настраиваем callback для уведомления о необходимости выбрать пользователя
-        advertisingUseCase.onUserSelectionRequired = {
-            viewModelScope.launch {
-                _showToastMessage.value = "Выберите текущего сотрудника"
-            }
-        }
-
         @Suppress("MissingPermission")
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
@@ -290,7 +278,10 @@ class LabControlViewModel(
         return staffUseCase.addStaffMember(newMember)
     }
 
-    fun clearToastMessage() {
-        _showToastMessage.value = null
+    fun getCurrentUser(): StaffMember? {
+        val staffListValue = staffList.value
+        return settingsRepo.getCurrentUserInfo()?.let { userInfo ->
+            staffListValue.find { it.name.equals(userInfo.name, ignoreCase = true) }
+        }
     }
 }
