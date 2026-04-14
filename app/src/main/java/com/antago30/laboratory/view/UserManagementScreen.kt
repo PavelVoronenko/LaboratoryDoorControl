@@ -174,24 +174,14 @@ fun UserManagementScreen(
                     onMacAddressChange = { input ->
                         macAddress = input
                     },
-                    onRssiThresholdChange = {
-                        rssiThreshold = it.filter { c -> c.isDigit() || c == '-' }
-                    },
-                    onCancel = {
-                        showAddForm = false
-                        userId = ""; userName = ""; macAddress = ""; rssiThreshold = "-70"
-                        selectedUuid = ""; selectedServiceData = ""
-                    },
                     onAdd = { params ->
-                        viewModel.addUser(params, context)
+                        viewModel.addUser(params)
                         showAddForm = false
                         userId = ""; userName = ""; macAddress = ""; rssiThreshold = "-70"
                         selectedUuid = ""; selectedServiceData = ""
                     },
                     onError = { viewModel.setError(it) },
                     getNextAvailableId = { viewModel.getNextAvailableId() },
-                    getNextAvailableUuid = { viewModel.getNextAvailableUuid() },
-                    getNextAvailableServiceData = { viewModel.getNextAvailableServiceData() },
                     areUuidsExhausted = areUuidsExhausted,
                     areServiceDataExhausted = areServiceDataExhausted,
                     modifier = Modifier

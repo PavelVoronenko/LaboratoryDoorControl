@@ -67,13 +67,9 @@ fun UserAddForm(
     isAddingUser: Boolean,
     onUserNameChange: (String) -> Unit,
     onMacAddressChange: (String) -> Unit,
-    onRssiThresholdChange: (String) -> Unit,
-    onCancel: () -> Unit,
     onAdd: (NewUserParams) -> Unit,
     onError: (String) -> Unit,
     getNextAvailableId: () -> Int,
-    getNextAvailableUuid: () -> String,
-    getNextAvailableServiceData: () -> String,
     areUuidsExhausted: Boolean,
     areServiceDataExhausted: Boolean,
     isConnected: Boolean = true,
@@ -239,7 +235,7 @@ fun UserAddForm(
                     } else {
                         Text(
                             text = "Добавить пользователя",
-                            fontSize = 20.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (!isLimitExhausted && isConnected) Primary else Color(
                                 0xFF6B7280

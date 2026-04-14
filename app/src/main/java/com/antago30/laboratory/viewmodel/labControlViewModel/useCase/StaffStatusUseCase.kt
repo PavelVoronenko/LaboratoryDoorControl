@@ -65,9 +65,9 @@ class StaffStatusUseCase(
      */
     fun syncStaffListFromController(userInfoList: List<UserInfo>) {
         val currentList = _staffList.value
-        android.util.Log.d("StaffStatusUseCase", "📋 syncStaffListFromController: ${currentList.size} текущих, ${userInfoList.size} от контроллера")
+        Log.d("StaffStatusUseCase", "📋 syncStaffListFromController: ${currentList.size} текущих, ${userInfoList.size} от контроллера")
         currentList.forEach { 
-            android.util.Log.d("StaffStatusUseCase", "  Текущий: ${it.name} (MAC:${it.macAddress}) isInside=${it.isInside}")
+            Log.d("StaffStatusUseCase", "  Текущий: ${it.name} (MAC:${it.macAddress}) isInside=${it.isInside}")
         }
 
         val updatedList = settingsRepo.syncStaffListFromUserInfo(
@@ -75,9 +75,9 @@ class StaffStatusUseCase(
             currentStaffList = currentList
         )
 
-        android.util.Log.d("StaffStatusUseCase", "✅ После синхронизации:")
+        Log.d("StaffStatusUseCase", "✅ После синхронизации:")
         updatedList.forEach {
-            android.util.Log.d("StaffStatusUseCase", "  ${it.name} (ID:${it.id}) isInside=${it.isInside}")
+            Log.d("StaffStatusUseCase", "  ${it.name} (ID:${it.id}) isInside=${it.isInside}")
         }
 
         _staffList.value = updatedList

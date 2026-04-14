@@ -47,7 +47,7 @@ class LabControlViewModel(
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListReceiving = false
     private var userListLastReceived = 0L
-    private val CHUNK_TIMEOUT_MS = 2000L
+    private val chunckTimeoutMs = 2000L
 
     init {
         @Suppress("MissingPermission")
@@ -114,7 +114,7 @@ class LabControlViewModel(
     private fun handleUserListChunk(packet: String) {
         try {
             if (packet.startsWith("USERLIST:")) {
-                // Простой формат (без чанков)
+                // Простой формат
                 val data = packet.removePrefix("USERLIST:")
                 parseAndSyncUserList(data)
                 return
@@ -223,7 +223,7 @@ class LabControlViewModel(
 
     private fun checkChunkTimeout() {
         viewModelScope.launch {
-            delay(CHUNK_TIMEOUT_MS)
+            delay(chunckTimeoutMs)
             if (userListReceiving && userListChunks.isNotEmpty()) {
                 Log.w("LabControlVM", "⚠️ USERLIST chunk timeout! Assembling partial data...")
                 assembleAndParseUserList()

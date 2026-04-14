@@ -1,6 +1,5 @@
 package com.antago30.laboratory.viewmodel.manageUsersViewModel.kt
 
-import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,7 +32,7 @@ class UserManagementViewModel(
     val isAddingUser: StateFlow<Boolean> = _isAddingUser.asStateFlow()
 
     // === Текущий выбранный пользователь ===
-    private val _currentUserId = MutableStateFlow<String?>(
+    private val _currentUserId = MutableStateFlow(
         connectionManager.getSettingsRepository().getCurrentUserId()
     )
     val currentUserId: StateFlow<String?> = _currentUserId.asStateFlow()
@@ -57,7 +56,7 @@ class UserManagementViewModel(
     private var userListTotalChunks = 0
     private var userListReceiving = false
     private var userListLastReceived = 0L
-    private val CHUNK_TIMEOUT_MS = 2000L  // Тайм-аут сборки: 2 секунд
+    private val chunkTimeoutMs = 2000L  // Тайм-аут сборки: 2 секунд
 
     // === Предустановленные значения (из AddUserViewModel) ===
     val uuidOptions = listOf(
@@ -198,7 +197,7 @@ class UserManagementViewModel(
     }
 
     // === Добавление пользователя ===
-    fun addUser(params: NewUserParams, context: Context) {
+    fun addUser(params: NewUserParams) {
         val isDuplicate = users.value.any { it.id == params.id }
         if (isDuplicate) {
             setError("Пользователь с таким ID уже существует")
@@ -291,10 +290,6 @@ class UserManagementViewModel(
     // === Утилиты ===
     fun clearError() {
         _showError.value = null
-    }
-
-    fun refresh() {
-        fetchUsers()
     }
 
     fun setError(message: String) {
@@ -401,7 +396,7 @@ class UserManagementViewModel(
     // === Проверка тайм-аута сборки ===
     private fun checkChunkTimeout() {
         viewModelScope.launch {
-            delay(CHUNK_TIMEOUT_MS)
+            delay(chunkTimeoutMs)
             if (userListReceiving && userListChunks.size < userListTotalChunks) {
                 Log.w(
                     "UserManagementVM",

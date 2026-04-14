@@ -1,6 +1,5 @@
 package com.antago30.laboratory.model
 
-
 data class UserInfo(
     val id: Int,
     val name: String,

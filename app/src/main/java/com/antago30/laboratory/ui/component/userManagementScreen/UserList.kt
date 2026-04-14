@@ -39,7 +39,7 @@ fun UserList(
                 top = 16.dp,
                 bottom = 16.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (users.isEmpty()) {
                 item {

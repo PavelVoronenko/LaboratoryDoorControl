@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,30 +47,30 @@ fun OpenDoorButton(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(28.dp))
             .scale(animatedScale),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (enabled) {
-                CardBg.copy(alpha = 0.6f)
+                Primary.copy(alpha = 0.15f)
             } else {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                CardBg.copy(alpha = 0.08f)
             }
         ),
         border = BorderStroke(
-            1.dp,
-            if (enabled) Primary.copy(alpha = 0.1f) else Primary.copy(alpha = 0.05f)
+            1.5.dp,
+            if (enabled) Primary.copy(alpha = 0.4f) else Primary.copy(alpha = 0.15f)
         )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp)
-                .clickable (enabled = enabled) {
+                .height(64.dp)
+                .clickable(enabled = enabled) {
                     if (enabled) {
-                        scale = 0.95f
+                        scale = 0.96f
                         scope.launch {
-                            delay(200)
+                            delay(150)
                             scale = 1f
                         }
                         onClick()
@@ -81,8 +80,8 @@ fun OpenDoorButton(
         ) {
             Text(
                 text = stringResource(id = R.string.openDoor),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.SemiBold,
                 color = if (enabled) Primary else Primary.copy(alpha = 0.5f),
                 textAlign = TextAlign.Center
             )
