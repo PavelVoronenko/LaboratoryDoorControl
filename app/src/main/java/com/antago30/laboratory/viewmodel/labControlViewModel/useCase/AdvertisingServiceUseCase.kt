@@ -22,6 +22,9 @@ class AdvertisingServiceUseCase(
 
     private var appContext: Context? = null
 
+    // Callback для уведомления UI о необходимости показать toast
+    var onUserSelectionRequired: (() -> Unit)? = null
+
     fun setContext(context: Context) {
         appContext = context.applicationContext
         syncState()
@@ -39,9 +42,17 @@ class AdvertisingServiceUseCase(
         }
 
         val currentUserInfo = settingsRepo.getCurrentUserInfo()
-        val serviceUuidStr = currentUserInfo?.uuid?.takeIf { it.isNotBlank() }
+        
+        // Проверяем, выбран ли текущий пользователь
+        if (currentUserInfo == null) {
+            onUserSelectionRequired?.invoke()
+            isStarting = false
+            return
+        }
+
+        val serviceUuidStr = currentUserInfo.uuid.takeIf { it.isNotBlank() }
             ?: "0000ff12-0000-1000-8000-00805f9b34fb"
-        val adData = currentUserInfo?.serviceData?.takeIf { it.isNotBlank() }
+        val adData = currentUserInfo.serviceData.takeIf { it.isNotBlank() }
             ?: "J7hs2Ak98g"
 
         isStarting = true
