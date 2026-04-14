@@ -44,7 +44,7 @@ fun ControllerMessageBanner(
     message: String?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    autoHideDelayMs: Long = 3000
+    autoHideDelayMs: Long = 2000
 ) {
     AnimatedVisibility(
         visible = message != null,
@@ -74,7 +74,7 @@ fun ControllerMessageBanner(
                         )
                     )
                     .clip(RoundedCornerShape(20.dp))
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
