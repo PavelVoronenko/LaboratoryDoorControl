@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,10 +45,20 @@ fun UserCard(
     var scale by remember { mutableFloatStateOf(1f) }
     val animatedScale by animateFloatAsState(targetValue = scale, label = "cardScale")
 
-    val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+    val backgroundBrush = if (isSelected) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Primary.copy(alpha = 0.25f),
+                Primary.copy(alpha = 0.1f)
+            )
+        )
     } else {
-        CardBg.copy(alpha = 0.6f)
+        Brush.verticalGradient(
+            colors = listOf(
+                CardBg.copy(alpha = 0.7f),
+                CardBg.copy(alpha = 0.35f)
+            )
+        )
     }
 
     Card(
@@ -55,16 +66,17 @@ fun UserCard(
             .fillMaxWidth()
             .scale(animatedScale),
         shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = BorderStroke(
             1.dp,
-            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else Primary.copy(alpha = 0.1f)
+            if (isSelected) Primary.copy(alpha = 0.5f) else Primary.copy(alpha = 0.15f)
         )
     ) {
         // Row: слева контент, справа кнопки
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(backgroundBrush)
                 .clickable(
                     onClick = {
                         onSelect()

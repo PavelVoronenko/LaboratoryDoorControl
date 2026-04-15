@@ -1,5 +1,10 @@
 package com.antago30.laboratory
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -27,7 +32,19 @@ fun LaboratoryApp(
     NavHost(
         navController = navController,
         startDestination = "lab_control",
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { 700 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(400))
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -700 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(400))
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -700 }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(400))
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { 700 }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(400))
+        }
     ) {
         composable("lab_control") {
             LabControlScreen(

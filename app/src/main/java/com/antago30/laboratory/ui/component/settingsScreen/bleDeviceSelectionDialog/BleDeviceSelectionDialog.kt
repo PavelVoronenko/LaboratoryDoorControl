@@ -19,15 +19,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -60,8 +57,6 @@ fun BleDeviceSelectionDialog(
     onRefresh: () -> Unit,
     selectedDeviceAddress: String? = null
 ) {
-    // Сортировка: устройства с "Laboratory" в имени — первыми,
-    // внутри каждой группы — по уровню сигнала (от лучшего к худшему)
     val sortedDevices = devices
         .partition { it.displayName.contains("Laboratory", ignoreCase = true) }
         .let { (laboratoryDevices, otherDevices) ->
@@ -100,8 +95,9 @@ fun BleDeviceSelectionDialog(
                         )
                         .clip(RoundedCornerShape(24.dp)),
                     shape = RoundedCornerShape(24.dp),
-                    color = CardBg,
-                    tonalElevation = 8.dp
+                    color = CardBg.copy(alpha = 0.95f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
+                    tonalElevation = 0.dp
                 ) {
                     Column(
                         modifier = Modifier
@@ -202,19 +198,19 @@ fun BleDeviceSelectionDialog(
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = Primary
-                                )
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Обновить", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             }
-                            Button(
+                            OutlinedButton(
                                 onClick = onDismiss,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Primary
-                                )
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Primary
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
                             ) {
                                 Text("Закрыть", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             }

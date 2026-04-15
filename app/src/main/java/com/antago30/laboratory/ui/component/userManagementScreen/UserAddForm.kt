@@ -2,7 +2,9 @@ package com.antago30.laboratory.ui.component.userManagementScreen
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,24 +24,13 @@ import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Numbers
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SignalCellularAlt
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -174,56 +165,66 @@ fun UserAddForm(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            Card(
+            val isEnabled = !isLimitExhausted && !isLoading && !isAddingUser && isConnected
+            
+            val contentColor = if (isEnabled) Primary else Color.Gray.copy(alpha = 0.4f)
+            val borderColor = if (isEnabled) Primary.copy(alpha = 0.4f) else Color.Gray.copy(alpha = 0.2f)
+            
+            val backgroundBrush = if (isEnabled) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Primary.copy(alpha = 0.12f),
+                        Primary.copy(alpha = 0.04f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Gray.copy(alpha = 0.1f),
+                        Color.Gray.copy(alpha = 0.03f)
+                    )
+                )
+            }
+
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(64.dp)
+                    .scale(animatedScale)
                     .clip(RoundedCornerShape(28.dp))
-                    .scale(animatedScale),
+                    .clickable(
+                        enabled = isEnabled,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(color = Primary),
+                        onClick = {
+                            buttonScale = 0.96f
+                            scope.launch {
+                                delay(150)
+                                buttonScale = 1f
+                            }
+                            val params = NewUserParams(
+                                id = userId.toIntOrNull() ?: getNextAvailableId(),
+                                name = userName,
+                                uuid = selectedUuid,
+                                serviceData = selectedServiceData,
+                                macAddress = macAddress,
+                                rssiThreshold = rssiThreshold.toIntOrNull() ?: -70
+                            )
+                            if (params.isValid()) {
+                                onAdd(params)
+                            } else {
+                                onError("Проверьте данные")
+                            }
+                        }
+                    ),
                 shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (!isLimitExhausted && !isLoading && !isAddingUser && isConnected) {
-                        Primary.copy(alpha = 0.15f)
-                    } else {
-                        CardBg.copy(alpha = 0.08f)
-                    }
-                ),
-                border = BorderStroke(
-                    1.5.dp,
-                    if (!isLimitExhausted && !isLoading && !isAddingUser && isConnected) {
-                        Primary.copy(alpha = 0.4f)
-                    } else {
-                        Primary.copy(alpha = 0.15f)
-                    }
-                )
+                color = Color.Transparent,
+                border = BorderStroke(1.5.dp, borderColor)
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .clickable(
-                            enabled = !isLimitExhausted && !isLoading && !isAddingUser && isConnected
-                        ) {
-                            if (!isLimitExhausted && !isLoading && !isAddingUser) {
-                                buttonScale = 0.96f
-                                scope.launch {
-                                    delay(150)
-                                    buttonScale = 1f
-                                }
-                                val params = NewUserParams(
-                                    id = userId.toIntOrNull() ?: getNextAvailableId(),
-                                    name = userName,
-                                    uuid = selectedUuid,
-                                    serviceData = selectedServiceData,
-                                    macAddress = macAddress,
-                                    rssiThreshold = rssiThreshold.toIntOrNull() ?: -70
-                                )
-                                if (params.isValid()) {
-                                    onAdd(params)
-                                } else {
-                                    onError("Проверьте данные")
-                                }
-                            }
-                        },
+                        .fillMaxSize()
+                        .background(backgroundBrush),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isLoading || isAddingUser) {
@@ -235,11 +236,9 @@ fun UserAddForm(
                     } else {
                         Text(
                             text = "Добавить пользователя",
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (!isLimitExhausted && isConnected) Primary else Color(
-                                0xFF6B7280
-                            ),
+                            color = contentColor,
                             textAlign = TextAlign.Center
                         )
                     }
