@@ -1,6 +1,7 @@
 package com.antago30.laboratory.view
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ fun SettingsScreen(
     viewModel: SettingsScreenViewModel,
     onBack: () -> Unit,
     onManageUsersClick: () -> Unit,
+    connectionManager: com.antago30.laboratory.ble.BleConnectionManager
 ) {
     val context = LocalContext.current
     val snackBarHostState = remember { SnackbarHostState() }
@@ -55,6 +57,7 @@ fun SettingsScreen(
 
     // Состояния из ViewModel
     val selectedDeviceAddress by viewModel.selectedDeviceAddress.collectAsState()
+    val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
 
     // Лаунчер для запроса разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -77,6 +80,12 @@ fun SettingsScreen(
 
     // === Диалог выбора BLE-устройства ===
     if (showDeviceDialog) {
+        // Перехватываем системный Back, чтобы закрывать диалог, а не уходить с экрана
+        BackHandler {
+            viewModel.stopDeviceScan()
+            showDeviceDialog = false
+        }
+
         BleDeviceSelectionDialog(
             devices = viewModel.availableDevices,
             isScanning = viewModel.isScanning,
@@ -114,7 +123,8 @@ fun SettingsScreen(
                         }
                     }
                 },
-                showBleButton = true
+                showBleButton = true,
+                connectionState = bleConnectionState
             )
         },
         floatingActionButton = {

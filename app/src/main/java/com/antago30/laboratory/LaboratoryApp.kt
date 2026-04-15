@@ -39,7 +39,8 @@ fun LaboratoryApp(
             SettingsScreen(
                 viewModel = settingsScreenViewModel,
                 onBack = { navController.popBackStack() },
-                onManageUsersClick = { navController.navigate("user_management") }
+                onManageUsersClick = { navController.navigate("user_management") },
+                connectionManager = connectionManager
             )
         }
         composable("user_management") {

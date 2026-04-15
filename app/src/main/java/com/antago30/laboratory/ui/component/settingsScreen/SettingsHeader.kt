@@ -4,9 +4,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.R
+import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.ui.theme.Primary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -33,7 +36,8 @@ fun SettingsHeader(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onBleDeviceClick: () -> Unit = {},
-    showBleButton: Boolean = true
+    showBleButton: Boolean = true,
+    connectionState: ConnectionState = ConnectionState.DISCONNECTED
 ) {
     val scope = rememberCoroutineScope()
     var backScale by remember { mutableFloatStateOf(1f) }
@@ -41,6 +45,8 @@ fun SettingsHeader(
 
     val animatedBackScale by animateFloatAsState(targetValue = backScale)
     val animatedBleScale by animateFloatAsState(targetValue = bleScale)
+
+    val isConnected = connectionState == ConnectionState.READY
 
     Box(
         modifier = modifier
@@ -99,8 +105,9 @@ fun SettingsHeader(
                         .size(44.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Bluetooth,
-                        contentDescription = "Выбрать BLE-устройство",
+                        imageVector = if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth,
+                        contentDescription = if (isConnected) "Подключено" else "Выбрать BLE-устройство",
+                        tint = if (isConnected) Primary else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(28.dp)
                     )
                 }

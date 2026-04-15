@@ -6,5 +6,11 @@ data class BleDevice(
     val rssi: Int,
     val timestamp: Long = System.currentTimeMillis()
 ) {
-    val displayName: String get() = name ?: "Unknown ($address)"
+    val displayName: String
+        get() = if (name.isNullOrBlank()) {
+            "Unknown"
+        } else {
+            // Убираем мак-адрес из скобок, если он есть в названии
+            name.replace(Regex("\\s*\\([0-9A-Fa-f:]{17}\\)"), "").trim()
+        }
 }
