@@ -1,31 +1,31 @@
 package com.antago30.laboratory.ui.component.labControlScreen
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.R
+import com.antago30.laboratory.ui.theme.Primary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -37,47 +37,107 @@ fun TopBar(
 ) {
     val scope = rememberCoroutineScope()
     var settingsScale by remember { mutableFloatStateOf(1f) }
+    val rotation = remember { Animatable(0f) }
 
     val animatedSettingsScale by animateFloatAsState(
         targetValue = settingsScale,
         label = "SettingsButtonScale"
     )
 
+    val infiniteTransition = rememberInfiniteTransition(label = "radar")
+    val radarScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 2.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "radarScale"
+    )
+    val radarAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "radarAlpha"
+    )
+
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 0.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AnimatedVisibility(
-            visible = isBroadcasting,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut()
+        // Иконка вещания
+        Box(
+            modifier = Modifier.size(44.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.advertise),
-                contentDescription = stringResource(R.string.startAdvertising),
-                modifier = Modifier.size(32.dp)
-            )
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isBroadcasting,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .graphicsLayer {
+                                scaleX = radarScale
+                                scaleY = radarScale
+                                alpha = radarAlpha
+                            }
+                            .border(1.5.dp, Primary.copy(alpha = 0.7f), CircleShape)
+                    )
+                    
+                    Icon(
+                        painter = painterResource(id = R.drawable.advertise),
+                        contentDescription = stringResource(R.string.startAdvertising),
+                        tint = Primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        IconButton(
-            onClick = {
-                settingsScale = 0.7f
-                scope.launch {
-                    delay(150)
-                    settingsScale = 1f
-                }
-                onSettingsButtonClick()
-            },
-            modifier = Modifier.scale(animatedSettingsScale)
+        // Кнопка настроек
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .scale(animatedSettingsScale)
+                .clip(CircleShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(color = Primary, bounded = false),
+                    onClick = {
+                        settingsScale = 0.85f
+                        scope.launch {
+                            rotation.animateTo(
+                                targetValue = rotation.value + 90f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                            )
+                        }
+                        scope.launch {
+                            delay(100)
+                            settingsScale = 1f
+                            onSettingsButtonClick()
+                        }
+                    }
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(id = R.drawable.settings),
+                imageVector = Icons.Outlined.Tune,
                 contentDescription = stringResource(R.string.settings),
-                modifier = Modifier.size(32.dp)
+                tint = Primary.copy(alpha = 0.75f),
+                modifier = Modifier 
+                    .size(30.dp)
+                    .rotate(rotation.value)
             )
         }
     }
 }
+

@@ -3,6 +3,7 @@ package com.antago30.laboratory.ui.component.labControlScreen.model
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +42,7 @@ import com.antago30.laboratory.ui.theme.Outdoor
 import com.antago30.laboratory.ui.theme.Primary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.antago30.laboratory.ui.theme.Text as ThemeText
 
 @Composable
 fun StaffItem(
@@ -51,8 +54,15 @@ fun StaffItem(
     var scale by remember { mutableFloatStateOf(1f) }
     val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
 
-    val disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-    val disabledBorderColor = Primary.copy(alpha = 0.05f)
+    val disabledContainerColor = CardBg.copy(alpha = 0.15f)
+    val disabledBorderColor = Primary.copy(alpha = 0.08f)
+
+    // Цвет обводки карточки (статичный согласно теме)
+    val cardBorderColor = if (enabled) {
+        Primary.copy(alpha = 0.1f)
+    } else {
+        disabledBorderColor
+    }
 
     Card(
         shape = RoundedCornerShape(28.dp),
@@ -63,10 +73,7 @@ fun StaffItem(
                 disabledContainerColor
             }
         ),
-        border = BorderStroke(
-            1.dp,
-            if (enabled) Primary.copy(alpha = 0.1f) else disabledBorderColor
-        )
+        border = BorderStroke(1.dp, cardBorderColor)
     ) {
         Row(
             modifier = Modifier
@@ -91,36 +98,49 @@ fun StaffItem(
                     .size(72.dp)
                     .padding(8.dp)
             ) {
-
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(
-                            color = if (enabled) {
-                                if (member.isInside) InLab.copy(alpha = 0.3f)
-                                else Outdoor.copy(alpha = 0.3f)
-                            } else {
-                                disabledBorderColor
-                            },
-                            shape = CircleShape
+                // Градиентный фон аватара в зависимости от статуса
+                val gradientColors = if (enabled) {
+                    if (member.isInside) {
+                        // Зелёный градиент (в лаборатории)
+                        listOf(
+                            InLab.copy(alpha = 0.4f),
+                            InLab.copy(alpha = 0.12f)
                         )
-                        .align(Alignment.Center)
-                )
+                    } else {
+                        // Красный градиент (на улице)
+                        listOf(
+                            Outdoor.copy(alpha = 0.4f),
+                            Outdoor.copy(alpha = 0.12f)
+                        )
+                    }
+                } else {
+                    listOf(
+                        Color.Gray.copy(alpha = 0.1f),
+                        Color.Gray.copy(alpha = 0.03f)
+                    )
+                }
+
+                // Цвет обводки аватара (статичный согласно теме)
+                val borderColor = if (enabled) {
+                    Primary.copy(alpha = 0.2f)
+                } else {
+                    Color.Gray.copy(alpha = 0.1f)
+                }
 
                 Box(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
-                        .background(
-                            if (enabled) Color(0xFF2D3748) else disabledContainerColor
-                        )
+                        .background(brush = Brush.radialGradient(colors = gradientColors, center = Offset(0.5f, 0.5f), radius = 0.8f))
+                        .then(Modifier.border(1.5.dp, borderColor, CircleShape))
                         .align(Alignment.Center),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = member.initials,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = if (enabled) ThemeText else Color.Gray.copy(alpha = 0.4f)
                     )
                 }
             }
@@ -130,6 +150,7 @@ fun StaffItem(
                     text = member.name,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
+                    color = if (enabled) Color.Unspecified else Color.Gray.copy(alpha = 0.4f)
                 )
                 if (enabled) {
                     Text(

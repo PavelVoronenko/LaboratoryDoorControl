@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.ui.theme.Primary
-import com.antago30.laboratory.ui.theme.SwitchUnchecked
 import com.antago30.laboratory.ui.theme.Text
 
 @Composable
@@ -27,8 +26,6 @@ fun ModeItem(
     enabled: Boolean = true
 ) {
     val disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-    val disabledTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-    val disabledThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
 
     Row(
         modifier = Modifier
@@ -51,17 +48,20 @@ fun ModeItem(
             colors = SwitchDefaults.colors(
                 // Активное состояние
                 checkedThumbColor = Color.White,
-                checkedTrackColor = Primary,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = SwitchUnchecked,
+                checkedTrackColor = Primary.copy(alpha = 0.45f),
+                checkedBorderColor = Primary.copy(alpha = 0.7f),
+                
+                uncheckedThumbColor = Color.White.copy(alpha = 0.8f),
+                uncheckedTrackColor = Color.Transparent,
+                uncheckedBorderColor = Primary.copy(alpha = 0.2f),
 
                 // Неактивное состояние (когда enabled = false)
-                disabledCheckedThumbColor = disabledThumbColor,
-                disabledCheckedTrackColor = disabledTrackColor,
-                disabledUncheckedThumbColor = disabledThumbColor,
-                disabledUncheckedTrackColor = disabledTrackColor,
-                disabledCheckedIconColor = disabledThumbColor,
-                disabledUncheckedIconColor = disabledThumbColor
+                disabledCheckedThumbColor = Color.Gray.copy(alpha = 0.3f),
+                disabledCheckedTrackColor = Color.Gray.copy(alpha = 0.1f),
+                disabledUncheckedThumbColor = Color.Gray.copy(alpha = 0.3f),
+                disabledUncheckedTrackColor = Color.Transparent,
+                disabledCheckedBorderColor = Color.Gray.copy(alpha = 0.2f),
+                disabledUncheckedBorderColor = Color.Gray.copy(alpha = 0.1f)
             )
         )
     }

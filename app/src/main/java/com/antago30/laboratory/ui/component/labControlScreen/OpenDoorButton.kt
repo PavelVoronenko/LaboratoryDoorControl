@@ -2,6 +2,7 @@ package com.antago30.laboratory.ui.component.labControlScreen
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,13 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.R
-import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,21 +53,34 @@ fun OpenDoorButton(
             .scale(animatedScale),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (enabled) {
-                Primary.copy(alpha = 0.15f)
-            } else {
-                CardBg.copy(alpha = 0.08f)
-            }
+            containerColor = Color.Transparent
         ),
         border = BorderStroke(
             1.5.dp,
-            if (enabled) Primary.copy(alpha = 0.4f) else Primary.copy(alpha = 0.15f)
+            if (enabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
         )
     ) {
+        val buttonBackground = if (enabled) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Primary.copy(alpha = 0.12f),
+                    Primary.copy(alpha = 0.04f)
+                )
+            )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color.Gray.copy(alpha = 0.1f),
+                    Color.Gray.copy(alpha = 0.03f)
+                )
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
+                .background(buttonBackground)
                 .clickable(enabled = enabled) {
                     if (enabled) {
                         scale = 0.96f
@@ -82,7 +97,7 @@ fun OpenDoorButton(
                 text = stringResource(id = R.string.openDoor),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (enabled) Primary else Primary.copy(alpha = 0.5f),
+                color = if (enabled) Primary else Color.Gray.copy(alpha = 0.4f),
                 textAlign = TextAlign.Center
             )
         }
