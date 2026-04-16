@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import com.antago30.laboratory.ui.component.settingsScreen.terminalLog.TerminalLogEntry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,10 @@ class SettingsScreenViewModel(
     private val _selectedDeviceAddress = MutableStateFlow(settingsRepo.getSelectedDeviceAddress())
     val selectedDeviceAddress: StateFlow<String?> = _selectedDeviceAddress.asStateFlow()
 
+    // Состояние логов терминала
+    private val _terminalLogs = MutableStateFlow<List<TerminalLogEntry>>(emptyList())
+    val terminalLogs: StateFlow<List<TerminalLogEntry>> = _terminalLogs.asStateFlow()
+
     // Состояние для выбора BLE-устройства (настройки)
     var selectedDeviceName by mutableStateOf<String?>(null)
         private set
@@ -48,6 +53,23 @@ class SettingsScreenViewModel(
     // Инициализация: загружаем сохранённое устройство
     init {
         loadSavedDevice()
+        observeTerminalData()
+    }
+
+    private fun observeTerminalData() {
+        viewModelScope.launch {
+            connectionManager.terminalData.collect { data ->
+                val message = String(data.value.toByteArray(), Charsets.UTF_8).trim()
+                if (message.isNotEmpty()) {
+                    val newEntry = TerminalLogEntry(message = message)
+                    _terminalLogs.value = (_terminalLogs.value + newEntry).takeLast(100)
+                }
+            }
+        }
+    }
+
+    fun clearLogs() {
+        _terminalLogs.value = emptyList()
     }
 
     // Загрузка сохранённого устройства из SharedPreferences
@@ -134,13 +156,6 @@ class SettingsScreenViewModel(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    // Очистка выбранного устройства
-    fun clearSelectedDevice() {
-        selectedDeviceName = null
-        _selectedDeviceAddress.value = null
-        settingsRepo.clearSelectedDevice()
-    }
-
     fun checkBlePermissions(context: Context): Boolean {
         val connectGranted = ContextCompat.checkSelfPermission(
             context, Manifest.permission.BLUETOOTH_CONNECT
@@ -162,9 +177,5 @@ class SettingsScreenViewModel(
     override fun onCleared() {
         super.onCleared()
         stopDeviceScanInternal()
-    }
-
-    fun updateSelectedDevice(address: String?) {
-        _selectedDeviceAddress.value = address
     }
 }

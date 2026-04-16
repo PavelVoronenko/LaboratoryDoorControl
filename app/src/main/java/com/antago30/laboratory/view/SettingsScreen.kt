@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog.BleDeviceSelectionDialog
+import com.antago30.laboratory.ui.component.settingsScreen.terminalLog.TerminalLogPanel
 import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 import kotlinx.coroutines.launch
@@ -49,6 +50,15 @@ fun SettingsScreen(
     // Состояния из ViewModel
     val selectedDeviceAddress by viewModel.selectedDeviceAddress.collectAsState()
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
+    val terminalLogs by viewModel.terminalLogs.collectAsState()
+
+    // Подписка на данные при готовности соединения
+    LaunchedEffect(bleConnectionState) {
+        if (bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY) {
+            connectionManager.subscribeToSensorData()
+            connectionManager.requestMtu(200)
+        }
+    }
 
     // Лаунчер для запроса разрешений
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -182,6 +192,13 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
+            } else {
+                // Панель логов терминала
+                TerminalLogPanel(
+                    logs = terminalLogs,
+                    onClearLogs = { viewModel.clearLogs() },
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         }
     }
