@@ -14,6 +14,7 @@ import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ble.BleScanner
 import com.antago30.laboratory.model.BleDevice
 import com.antago30.laboratory.util.SettingsRepository
+import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.FunctionControlUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -30,7 +31,8 @@ import java.time.format.DateTimeFormatter
 
 class SettingsScreenViewModel(
     private val settingsRepo: SettingsRepository,
-    private val connectionManager: BleConnectionManager
+    private val connectionManager: BleConnectionManager,
+    val functionUseCase: FunctionControlUseCase
 ) : ViewModel() {
 
     companion object {
@@ -195,6 +197,13 @@ class SettingsScreenViewModel(
 
         viewModelScope.launch {
             connectionManager.sendCommand("LOGLIST")
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun reconnectJde() {
+        viewModelScope.launch {
+            connectionManager.sendCommand("RECONNECT_JDE")
         }
     }
 

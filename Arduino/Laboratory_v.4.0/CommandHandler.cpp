@@ -184,6 +184,16 @@ void commandHandler() {
       sendLogHistoryChunked();
     }
 
+    // RECONNECT_JDE — попытка переподключиться к модулю освещения
+    if (cmd.equalsIgnoreCase("RECONNECT_JDE")) {
+      log("Запрос на переподключение к JDY-33...", LOG_INFO);
+      if (scanAndConnect()) {
+        log("Подключение к JDY-33 успешно", LOG_INFO);
+      } else {
+        log("Не удалось подключиться к JDY-33", LOG_WARN);
+      }
+    }
+
     rxValue = "";
   }
 }

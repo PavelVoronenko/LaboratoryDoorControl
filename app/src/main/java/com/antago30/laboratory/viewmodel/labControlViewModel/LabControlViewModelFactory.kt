@@ -15,6 +15,9 @@ class LabControlViewModelFactory(
     private val settingsRepo: SettingsRepository
 ) : ViewModelProvider.Factory {
 
+    lateinit var functionUseCase: FunctionControlUseCase
+        private set
+
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LabControlViewModel::class.java)) {
@@ -29,7 +32,7 @@ class LabControlViewModelFactory(
             )
             val advertisingUseCase = AdvertisingServiceUseCase(settingsRepo)
 
-            val functionUseCase = FunctionControlUseCase(
+            val fUseCase = FunctionControlUseCase(
                 connectionManager = connectionManager,
                 onAdvertisingToggle = { enabled ->
                     if (enabled) advertisingUseCase.start() else advertisingUseCase.stop()
@@ -39,16 +42,17 @@ class LabControlViewModelFactory(
                     FunctionItem("lighting", "💡 Освещение", false, requiresConnection = true)
                 )
             )
+            this.functionUseCase = fUseCase
 
             val parsingUseCase = BleDataParsingUseCase(
                 staffUseCase = staffUseCase,
-                functionUseCase = functionUseCase
+                functionUseCase = fUseCase
             )
 
             return LabControlViewModel(
                 connectionManager = connectionManager,
                 staffUseCase = staffUseCase,
-                functionUseCase = functionUseCase,
+                functionUseCase = fUseCase,
                 parsingUseCase = parsingUseCase,
                 advertisingUseCase = advertisingUseCase,
                 settingsRepo = settingsRepo

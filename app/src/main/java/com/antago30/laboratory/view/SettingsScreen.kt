@@ -70,6 +70,7 @@ fun SettingsScreen(
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
     val terminalLogs by viewModel.terminalLogs.collectAsState()
     val isTerminalActive by viewModel.isTerminalActive.collectAsState()
+    val isJdeConnected by viewModel.functionUseCase.isJdeConnected.collectAsState()
 
     // Управление наблюдением за логами терминала
     LaunchedEffect(Unit) {
@@ -152,8 +153,10 @@ fun SettingsScreen(
                         }
                     }
                 },
+                onReconnectJde = { viewModel.reconnectJde() },
                 showBleButton = true,
-                connectionState = bleConnectionState
+                connectionState = bleConnectionState,
+                isJdeConnected = isJdeConnected
             )
         },
         floatingActionButton = {

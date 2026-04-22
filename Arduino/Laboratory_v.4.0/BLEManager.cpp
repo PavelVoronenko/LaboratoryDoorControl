@@ -246,12 +246,13 @@ void scanForTrustedDevices() {
 // ----------------------- Отправка служебных данных ------------------------------
 void sendCommand() {
   extern String lightStatus;
-  String sendCommand = ("" + lightStatus + "|");
+  // Формат: LIGHTSTATUS:0|JDE:1|ID1-0|ID2-1|...
+  String sendData = lightStatus + "|JDE:" + String(jdeConnect ? "1" : "0") + "|";
 
   for (int i = 0; i < trustedDevicesCount; i++) {
-    sendCommand += ("ID" + String(trustedDevices[i].id) + "-" + String(trustedDevices[i].location == "inside" ? 1 : 0) + "|");
+    sendData += ("ID" + String(trustedDevices[i].id) + "-" + String(trustedDevices[i].location == "inside" ? 1 : 0) + "|");
   }
-  pCharacteristic->setValue("" + sendCommand);
+  pCharacteristic->setValue(sendData.c_str());
   pCharacteristic->notify();
 }
 

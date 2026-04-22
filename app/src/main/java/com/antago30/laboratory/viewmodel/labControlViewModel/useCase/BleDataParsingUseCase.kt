@@ -39,6 +39,10 @@ class BleDataParsingUseCase(
                     val isLightOn = lightStatus == "1"
                     functionUseCase.syncLightingState(isLightOn, currentTime)
                 }
+                part.startsWith("JDE:", ignoreCase = true) -> {
+                    val state = part.substringAfter("JDE:", "").trim()
+                    functionUseCase.setJdeConnected(state == "1")
+                }
                 // Новый формат: ID1-1 (id=1, inside=true) или ID2-0 (id=2, inside=false)
                 part.startsWith("ID", ignoreCase = true) && part.contains("-") -> {
                     val dashIndex = part.indexOf('-')

@@ -15,6 +15,9 @@ class FunctionControlUseCase(
     private val _functions = MutableStateFlow(initialFunctions)
     val functions: StateFlow<List<FunctionItem>> = _functions.asStateFlow()
 
+    private val _isJdeConnected = MutableStateFlow(false)
+    val isJdeConnected: StateFlow<Boolean> = _isJdeConnected.asStateFlow()
+
     fun toggleFunction(
         id: String,
         sendBleCommand: (String) -> Unit
@@ -62,5 +65,9 @@ class FunctionControlUseCase(
             } else func
         }
         _functions.value = updatedList
+    }
+
+    fun setJdeConnected(connected: Boolean) {
+        _isJdeConnected.value = connected
     }
 }

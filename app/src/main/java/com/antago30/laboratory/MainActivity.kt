@@ -72,7 +72,8 @@ class MainActivity : ComponentActivity() {
 
         val settingsFactory = SettingsScreenViewModelFactory(
             settingsRepo = settingsRepo,
-            connectionManager = connectionManager
+            connectionManager = connectionManager,
+            functionUseCase = labControlFactory.functionUseCase
         )
         settingsScreenViewModel = ViewModelProvider(this, settingsFactory)[SettingsScreenViewModel::class.java]
         settingsScreenViewModel.setAppContext(applicationContext)
