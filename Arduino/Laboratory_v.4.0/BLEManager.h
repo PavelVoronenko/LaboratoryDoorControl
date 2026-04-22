@@ -44,13 +44,23 @@ bool scanAndConnect();
 void scanForTrustedDevices();
 
 // ------------------ Отправка уведомлений через терминал ------------------
-void log(String message);
+enum LogType {
+    LOG_INFO,   // [I] Системные сообщения (подключение/отключение)
+    LOG_DOOR,   // [D] Двери (открытие/закрытие)
+    LOG_USER,   // [U] Пользователи (вход/выход)
+    LOG_WARN    // [W] Предупреждения/ошибки
+};
+void log(String message, LogType type = LOG_INFO);
 
 // ------------------ Отправка служебных данных ------------------
 void sendCommand();
 
 // ------------------ Отправка списка пользователей ------------------
 void sendUserListChunked();
+
+// ------------------ Отправка истории логов ------------------
+void sendLogHistoryChunked();
+void addToLogHistory(String message);
 
 // ------------------ Обработка входа/выхода (определено в Utils) ------------------
 void processExitAndEntry(DevicesDetected *devDetected);

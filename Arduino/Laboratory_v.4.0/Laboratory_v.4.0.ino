@@ -45,6 +45,8 @@ void setup() {
     Serial.println("Подключение к JDY-33 не удалось");
     jdeConnect = false;
   }
+
+  log("Система запущена. Версия 4.0", LOG_INFO);
 }
 
 //-----------------------------------First Core------------------------------------------------//
@@ -89,10 +91,8 @@ void Task2code(void * pvParameters) {
     checkPeopleInside();
 
     // Обработка датчика движения
-    if (millis() - 0 > 30000) {
-      if (digitalRead(SENSOR_PIN) == LOW) {
-        openDoor(10, "|SENSOR|");
-      }
+    if (digitalRead(SENSOR_PIN) == LOW) {
+      openDoor(10, "PIR SENSOR");
     }
 
     // Обнуление процесса входа/выхода
@@ -101,7 +101,7 @@ void Task2code(void * pvParameters) {
         if (trustedDevices[i].entryInProgress || trustedDevices[i].exitInProgress) {
           trustedDevices[i].entryInProgress = false;
           trustedDevices[i].exitInProgress = false;
-          log(trustedDevices[i].name + " не закончил процесс входа/выхода");
+          //log(trustedDevices[i].name + " не закончил процесс входа/выхода");
         }
       }
     }

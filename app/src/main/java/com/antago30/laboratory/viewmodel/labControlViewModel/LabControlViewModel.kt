@@ -102,11 +102,21 @@ class LabControlViewModel(
         // Обработка Terminal characteristic (логи от контроллера)
         viewModelScope.launch {
             connectionManager.terminalData.collect { data ->
-                val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
-                // Показываем toast для сообщений об освещении и JDE-33
+                val response = try {
+                    String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
+                } catch (e: Exception) { "" }
+
+                // Игнорируем историю логов и пустые сообщения
+                if (response.isEmpty() || response.startsWith("LOG_HIST:")) return@collect
+
+                // Показываем toast ТОЛЬКО для освещения
                 if (response.contains("Освещение") || 
-                    response.contains("JDE-33")) {
-                    _controllerToastMessage.value = response
+                    response.contains("JDE-33") ||
+                    response.contains("Автоматическое")) {
+                    
+                    // Очищаем сообщение от технических префиксов [W], [I], [D]
+                    val cleanMessage = response.replace(Regex("^\\[[A-Z]]\\s*"), "")
+                    _controllerToastMessage.value = cleanMessage
                 }
             }
         }
@@ -303,10 +313,6 @@ class LabControlViewModel(
         if (advertisingUseCase.isRunning.value) {
             advertisingUseCase.onUserChanged()
         }
-    }
-
-    fun addNewStaffMember(newMember: StaffMember): Boolean {
-        return staffUseCase.addStaffMember(newMember)
     }
 
     fun getCurrentUser(): StaffMember? {

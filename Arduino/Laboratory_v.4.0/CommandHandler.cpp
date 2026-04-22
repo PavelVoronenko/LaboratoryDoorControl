@@ -1,5 +1,8 @@
 #include "CommandHandler.h"
 #include "DeviceStorage.h"
+#include "BLEManager.h"
+#include "DoorControl.h"
+#include "Utils.h"
 
 // ----------------------- Парсинг команды ADDUSER и сохранение в NVS -----------------------
 void addNewUserFromCommand(String params) {
@@ -18,7 +21,7 @@ void addNewUserFromCommand(String params) {
   }
 
   if (count < 5) {
-    log("Ошибка: неверный формат ADDUSER");
+    log("Ошибка: неверный формат ADDUSER", LOG_WARN);
     return;
   }
 
@@ -36,7 +39,7 @@ void addNewUserFromCommand(String params) {
 
   // Проверяем лимит
   if (trustedDevicesCount >= MAX_USERS) {
-    log("Ошибка: достигнут лимит пользователей (" + String(MAX_USERS) + ")");
+    log("Ошибка: достигнут лимит пользователей (" + String(MAX_USERS) + ")", LOG_WARN);
     return;
   }
 
@@ -78,9 +81,9 @@ void addNewUserFromCommand(String params) {
       trustedDevices[idx].rssiThreshold = rssiThreshold;
     }
 
-    log("Пользователь '" + name + "' добавлен (ID:" + String(id) + ") MAC: " + mac);
+    log("Пользователь '" + name + "' добавлен (id:" + String(id) + ")", LOG_USER);
   } else {
-    log("Ошибка сохранения в NVS");
+    log("Ошибка сохранения в NVS", LOG_WARN);
   }
 }
 
@@ -90,7 +93,7 @@ void commandHandler() {
     String cmd = String(rxValue.c_str());
 
     if (cmd.equalsIgnoreCase("OPENDOOR")) {
-      openDoor(0, "|APP|");
+      openDoor(0, "APP");
     }
 
     if (cmd.equalsIgnoreCase("LIGHTON")) {
@@ -112,12 +115,13 @@ void commandHandler() {
         // Находим устройство по ID
         for (int i = 0; i < trustedDevicesCount; i++) {
           if (trustedDevices[i].id == userId) {
+            String userName = String(trustedDevices[i].name);
             if (state == 1) {
               trustedDevices[i].location = "inside";
-              log("Пользователь #" + String(userId) + " теперь внутри");
+              log(userName + ": в лаборатории", LOG_USER);
             } else {
               trustedDevices[i].location = "outside";
-              log("Пользователь #" + String(userId) + " теперь снаружи");
+              log(userName + ": на улице", LOG_USER);
             }
             break;
           }
@@ -134,6 +138,15 @@ void commandHandler() {
     // DELUSER:id
     if (cmd.startsWith("DELUSER:")) {
       int id = cmd.substring(8).toInt();
+
+      String userName = "Неизвестный";
+      for (int i = 0; i < trustedDevicesCount; i++) {
+        if (trustedDevices[i].id == id) {
+          userName = String(trustedDevices[i].name);
+          break;
+        }
+      }
+
       if (deleteTrustedDevice(id)) {
         // Сохраняем текущие статусы перед перезагрузкой
         String savedLocations[MAX_USERS];
@@ -157,13 +170,18 @@ void commandHandler() {
           }
         }
 
-        log("Пользователь #" + String(id) + " удалён");
+        log("Пользователь '" + userName + "' удалён (id:"+ String(id) + ")", LOG_USER);
       }
     }
 
     // LISTUSERS — отправить список всех пользователей в приложение
     if (cmd.equalsIgnoreCase("LISTUSERS")) {
       sendUserListChunked();
+    }
+
+    // LOGLIST — отправить историю логов
+    if (cmd.equalsIgnoreCase("LOGLIST")) {
+      sendLogHistoryChunked();
     }
 
     rxValue = "";

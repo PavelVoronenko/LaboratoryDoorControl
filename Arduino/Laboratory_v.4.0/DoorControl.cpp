@@ -1,8 +1,6 @@
 #include "DoorControl.h"
 #include "DeviceStorage.h"
-
-// Forward declaration
-void log(String message);
+#include "BLEManager.h"
 
 // ------------------ Глобальные переменные ------------------
 unsigned long doorOpenTimestamp = 0;
@@ -19,12 +17,14 @@ void initPins() {
 
 // ---------------------------- Открытие и закрытие -----------------------------
 void openDoor(int pause, String source) {
-  if (millis() - doorOpenTimestamp > pause * 1000) {
+  if (millis() - doorOpenTimestamp > (unsigned long)pause * 1000) {
     doorOpenTimestamp = millis();
     ledcAttach(SPEAKER_PIN, 4, 8);
     ledcWrite(SPEAKER_PIN, 150);
     digitalWrite(OPENING_PIN, HIGH);
-    log(source + " Дверь открыта");
+
+    String logMsg = "Дверь открыта [" + source + "]";
+    log(logMsg, LOG_DOOR);
   }
 }
 
@@ -34,12 +34,11 @@ void closedDoor() {
       ledcDetach(SPEAKER_PIN);
       digitalWrite(SPEAKER_PIN, LOW);
       digitalWrite(OPENING_PIN, LOW);
-      log("|SYSTEM| Дверь закрыта");
 
       // Проиграть сигнал если все на улице
       if (allUsersOutside()) {
         playThreeBeeps();
-        log("|SYSTEM| Все сотрудники на улице, проигран сигнал");
+        log("Все сотрудники на улице, проигран сигнал", LOG_INFO);
       }
     }
   }

@@ -38,6 +38,7 @@ class BleConnectionHandler(
             }
 
             gatt?.let {
+                android.util.Log.d("BleConnectionHandler", "🧹 Closing GATT connection...")
                 it.disconnect()
                 it.close()
             }
@@ -54,8 +55,6 @@ class BleConnectionHandler(
     }
 
     fun getGatt(): BluetoothGatt? = gatt
-
-    fun isConnected(): Boolean = gatt != null
 
     // Результат операции отключения
     sealed class DisconnectResult {

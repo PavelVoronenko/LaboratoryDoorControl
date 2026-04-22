@@ -8,14 +8,33 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ManageAccounts
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,12 +70,28 @@ fun SettingsScreen(
     val selectedDeviceAddress by viewModel.selectedDeviceAddress.collectAsState()
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
     val terminalLogs by viewModel.terminalLogs.collectAsState()
+    val isTerminalActive by viewModel.isTerminalActive.collectAsState()
+
+    // Управление наблюдением за логами терминала
+    LaunchedEffect(Unit) {
+        viewModel.startTerminalObservation()
+    }
+
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopTerminalObservation()
+        }
+    }
 
     // Подписка на данные при готовности соединения
     LaunchedEffect(bleConnectionState) {
         if (bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY) {
             connectionManager.subscribeToSensorData()
             connectionManager.requestMtu(200)
+
+            // Запрос истории логов после готовности сервисов
+            kotlinx.coroutines.delay(500)
+            viewModel.requestLogHistory()
         }
     }
 
@@ -169,8 +204,7 @@ fun SettingsScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(8.dp)
-                .verticalScroll(rememberScrollState()),
+                .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (selectedDeviceAddress == null) {
@@ -193,11 +227,12 @@ fun SettingsScreen(
                     )
                 }
             } else {
-                // Панель логов терминала
                 TerminalLogPanel(
                     logs = terminalLogs,
                     onClearLogs = { viewModel.clearLogs() },
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    isTerminalActive = isTerminalActive,
+                    isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
                 )
             }
         }

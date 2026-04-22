@@ -204,10 +204,10 @@ fun UserAddForm(
                             }
                             val params = NewUserParams(
                                 id = userId.toIntOrNull() ?: getNextAvailableId(),
-                                name = userName,
+                                name = userName.trim(),
                                 uuid = selectedUuid,
                                 serviceData = selectedServiceData,
-                                macAddress = macAddress,
+                                macAddress = macAddress.trim(),
                                 rssiThreshold = rssiThreshold.toIntOrNull() ?: -70
                             )
                             if (params.isValid()) {

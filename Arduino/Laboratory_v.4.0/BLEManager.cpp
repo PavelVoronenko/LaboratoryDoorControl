@@ -9,6 +9,12 @@ BLEClient *pClient = NULL;
 BLERemoteCharacteristic* pRemoteCharacteristic = NULL;
 BLEScan* pBLEScan;
 
+// --- Логирование истории ---
+const int MAX_LOG_HISTORY = 500;
+String logHistory[MAX_LOG_HISTORY];
+int logHead = 0;
+int logCount = 0;
+
 bool connected = false;
 String rxValue = "";
 bool jdeConnect = false;
@@ -19,11 +25,9 @@ DevicesDetected devicesDetected[10];
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     pServer->startAdvertising();
-    log("Клиент подключен");
   }
   void onDisconnect(BLEServer* pServer) {
     pServer->startAdvertising();
-    log("Клиент отключен");
   }
 };
 
@@ -34,15 +38,70 @@ class CharacteristicCallBack : public BLECharacteristicCallbacks {
 };
 
 //-----------------BLE терминал -----------------------------
-void log(String message) {
-  Terminal->setValue("" + message);
+void addToLogHistory(String message) {
+  logHistory[logHead] = message;
+  logHead = (logHead + 1) % MAX_LOG_HISTORY;
+  if (logCount < MAX_LOG_HISTORY) logCount++;
+}
+
+void log(String message, LogType type) {
+  String prefix = "[I] ";
+  if (type == LOG_DOOR) prefix = "[D] ";
+  else if (type == LOG_USER) prefix = "[U] ";
+  else if (type == LOG_WARN) prefix = "[W] ";
+
+  String fullMessage = prefix + message;
+
+  Terminal->setValue((uint8_t*)fullMessage.c_str(), fullMessage.length());
   Terminal->notify();
-  Serial.println(message);
+  Serial.println(fullMessage);
+  addToLogHistory(fullMessage);
+}
+
+void sendLogHistoryChunked() {
+  //Serial.println("Starting fast log history sync...");
+
+  // Начинаем с самого последнего (нового) лога
+  int newestIndex = (logHead - 1 + MAX_LOG_HISTORY) % MAX_LOG_HISTORY;
+
+  String buffer = "";
+  const int MAX_PACKET_SIZE = 450; // Оставляем запас для заголовка
+
+  for (int i = 0; i < logCount; i++) {
+    int currentIndex = (newestIndex - i + MAX_LOG_HISTORY) % MAX_LOG_HISTORY;
+    String logEntry = logHistory[currentIndex];
+
+    // Если добавление следующего лога превысит размер пакета
+    if (buffer.length() + logEntry.length() + 15 > MAX_PACKET_SIZE) {
+      // Отправляем текущий буфер
+      String packet = "LOG_HIST:BATCH|" + buffer;
+      Terminal->setValue((uint8_t*)packet.c_str(), packet.length());
+      Terminal->notify();
+      delay(15); // Задержка для надежной передачи пакета
+      buffer = "";
+    }
+
+    if (buffer.length() > 0) buffer += "\n";
+    buffer += logEntry;
+  }
+
+  // Отправляем остаток
+  if (buffer.length() > 0) {
+    String packet = "LOG_HIST:BATCH|" + buffer;
+    Terminal->setValue((uint8_t*)packet.c_str(), packet.length());
+    Terminal->notify();
+    delay(1);
+  }
+
+  String endPacket = "LOG_HIST:END";
+  Terminal->setValue((uint8_t*)endPacket.c_str(), endPacket.length());
+  Terminal->notify();
+  //Serial.println("Fast log history sync complete.");
 }
 
 // ------------------ Инициализация BLE сервера ------------------
 void initBLEServer() {
-  BLEDevice::init("DEV Laboratory");
+  BLEDevice::init("Laboratory");
   BLEDevice::setMTU(512);
   
   pServer = BLEDevice::createServer();
@@ -96,7 +155,7 @@ bool scanAndConnect() {
       Serial.println("Найден JDY-33, подключение...");
       pClient = BLEDevice::createClient();
       if (pClient->connect(&device)) {
-        Serial.println("Подключено");
+        log("Соединение с JDE-33 установлено", LOG_INFO);
         BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
         if (pRemoteService == nullptr) {
           Serial.println("Не найден сервис");
@@ -128,6 +187,7 @@ bool scanAndConnect() {
 void scanForTrustedDevices() {
   BLEScanResults* results = pBLEScan->start(SCAN_TIME, false);
   int devicesIndex = 0;
+  int rssi;
 
   for (int i = 0; i < 10; i++) {
     devicesDetected[i].name = "";
@@ -137,7 +197,7 @@ void scanForTrustedDevices() {
   for (int i = 0; i < results->getCount(); i++) {
     BLEAdvertisedDevice device = results->getDevice(i);
     String mac = device.getAddress().toString().c_str();
-    int rssi = device.getRSSI();
+    rssi = device.getRSSI();
 
     // Нормализуем MAC-адрес
     mac.replace(":", "");
@@ -147,7 +207,6 @@ void scanForTrustedDevices() {
     for (int j = 0; j < trustedDevicesCount; j++) {
       if (mac.equalsIgnoreCase(trustedDevices[j].macAddress)) {
         if (rssi >= trustedDevices[j].rssiThreshold) {
-          log("Обнаружен: " + trustedDevices[j].name + ", RSSI: " + String(rssi));
           devicesDetected[devicesIndex].name = trustedDevices[j].name;
           devicesDetected[devicesIndex].rssi = rssi;
           devicesIndex++;
@@ -162,7 +221,6 @@ void scanForTrustedDevices() {
       for (int j = 0; j < trustedDevicesCount; j++) {
         if (uuidStr.equalsIgnoreCase(trustedDevices[j].uuid)) {
           if (device.getServiceData() == trustedDevices[j].serviceDataHex && rssi >= trustedDevices[j].rssiThreshold) {
-            log("Обнаружен: " + trustedDevices[j].name + ", RSSI: " + String(rssi));
             devicesDetected[devicesIndex].name = trustedDevices[j].name;
             devicesDetected[devicesIndex].rssi = rssi;
             devicesIndex++;
@@ -171,7 +229,6 @@ void scanForTrustedDevices() {
       }
     }
   }
-
   if (devicesDetected[0].name != "") {
     processExitAndEntry(devicesDetected);
   }
