@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
+import com.antago30.laboratory.model.UserInfo
+import com.antago30.laboratory.ui.component.userManagementScreen.DeleteUserConfirmationDialog
 import com.antago30.laboratory.ui.component.userManagementScreen.UserAddForm
 import com.antago30.laboratory.ui.component.userManagementScreen.UserList
 import com.antago30.laboratory.ui.component.userManagementScreen.UserManagementFab
@@ -50,6 +52,7 @@ fun UserManagementScreen(
 
     // Состояния формы
     var showAddForm by remember { mutableStateOf(false) }
+    var userToDelete by remember { mutableStateOf<UserInfo?>(null) }
     var userId by remember { mutableStateOf("") }
     var userName by remember { mutableStateOf("") }
     var selectedUuid by remember { mutableStateOf("") }
@@ -71,8 +74,12 @@ fun UserManagementScreen(
     )
 
     // ✅ Обработка системной кнопки "Назад"
-    BackHandler(enabled = showAddForm) {
-        showAddForm = false
+    BackHandler(enabled = showAddForm || userToDelete != null) {
+        if (userToDelete != null) {
+            userToDelete = null
+        } else {
+            showAddForm = false
+        }
     }
 
     // ✅ Условный callback для кнопки в топбаре
@@ -192,7 +199,9 @@ fun UserManagementScreen(
                 Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
                     UserList(
                         users = users,
-                        onDeleteClick = { viewModel.deleteUser(it) },
+                        onDeleteClick = { id -> 
+                            userToDelete = users.find { it.id == id }
+                        },
                         isConnected = isConnected == ConnectionState.READY,
                         currentUserId = currentUserId,
                         onUserSelected = { userInfo ->
@@ -201,6 +210,18 @@ fun UserManagementScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     )
+
+                    // Окно подтверждения удаления
+                    userToDelete?.let { user ->
+                        DeleteUserConfirmationDialog(
+                            user = user,
+                            onConfirm = {
+                                viewModel.deleteUser(user.id)
+                                userToDelete = null
+                            },
+                            onDismiss = { userToDelete = null }
+                        )
+                    }
 
                     if (isLoading) {
                         CircularProgressIndicator(
