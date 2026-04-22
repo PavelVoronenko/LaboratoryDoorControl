@@ -74,12 +74,8 @@ fun UserManagementScreen(
     )
 
     // ✅ Обработка системной кнопки "Назад"
-    BackHandler(enabled = showAddForm || userToDelete != null) {
-        if (userToDelete != null) {
-            userToDelete = null
-        } else {
-            showAddForm = false
-        }
+    BackHandler(enabled = showAddForm) {
+        showAddForm = false
     }
 
     // ✅ Условный callback для кнопки в топбаре

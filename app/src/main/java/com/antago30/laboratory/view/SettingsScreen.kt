@@ -1,7 +1,6 @@
 package com.antago30.laboratory.view
 
 import android.Manifest
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -116,12 +115,6 @@ fun SettingsScreen(
 
     // === Диалог выбора BLE-устройства ===
     if (showDeviceDialog) {
-        // Перехватываем системный Back, чтобы закрывать диалог, а не уходить с экрана
-        BackHandler {
-            viewModel.stopDeviceScan()
-            showDeviceDialog = false
-        }
-
         BleDeviceSelectionDialog(
             devices = viewModel.availableDevices,
             isScanning = viewModel.isScanning,

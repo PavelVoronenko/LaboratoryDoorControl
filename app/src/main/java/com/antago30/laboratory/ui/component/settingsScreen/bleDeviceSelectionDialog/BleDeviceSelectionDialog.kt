@@ -1,6 +1,8 @@
 package com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,6 +10,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +36,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +54,7 @@ import com.antago30.laboratory.model.BleDevice
 import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
 import com.antago30.laboratory.ui.theme.TextMuted
+import kotlinx.coroutines.delay
 import com.antago30.laboratory.ui.theme.Text as ThemeText
 
 @Composable
@@ -57,23 +66,54 @@ fun BleDeviceSelectionDialog(
     onRefresh: () -> Unit,
     selectedDeviceAddress: String? = null
 ) {
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.6f else 0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "scrimAlpha"
+    )
+
+    val animateOutAndDismiss = {
+        isVisible = false
+    }
+
+    LaunchedEffect(isVisible) {
+        if (!isVisible) {
+            delay(200)
+            onDismiss()
+        }
+    }
+
+    BackHandler(enabled = isVisible) {
+        animateOutAndDismiss()
+    }
+
     val sortedDevices = devices
         .partition { it.displayName.contains("Laboratory", ignoreCase = true) }
         .let { (laboratoryDevices, otherDevices) ->
             laboratoryDevices.sortedByDescending { it.rssi } + otherDevices.sortedByDescending { it.rssi }
         }
+
     Popup(
         alignment = Alignment.Center,
-        onDismissRequest = onDismiss
+        onDismissRequest = animateOutAndDismiss
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f))
-                .clickable { onDismiss() }
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = scrimAlpha))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { animateOutAndDismiss() }
         ) {
             AnimatedVisibility(
-                visible = true,
+                visible = isVisible,
                 enter = fadeIn(animationSpec = tween(200)) + scaleIn(
                     initialScale = 0.9f,
                     animationSpec = tween(200)
@@ -93,7 +133,8 @@ fun BleDeviceSelectionDialog(
                             shape = RoundedCornerShape(24.dp),
                             spotColor = Primary.copy(alpha = 0.15f)
                         )
-                        .clip(RoundedCornerShape(24.dp)),
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable(enabled = false) { },
                     shape = RoundedCornerShape(24.dp),
                     color = CardBg.copy(alpha = 0.95f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
@@ -172,13 +213,17 @@ fun BleDeviceSelectionDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 300.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             items(sortedDevices, key = { it.address }) { device ->
                                 BleDeviceItem(
                                     device = device,
                                     isSelected = device.address == selectedDeviceAddress,
-                                    onClick = { onDeviceSelected(device) }
+                                    onClick = { 
+                                        onDeviceSelected(device)
+                                        // При выборе устройства диалог обычно закрывается родителем сразу, 
+                                        // но мы можем запустить анимацию выхода если нужно
+                                    }
                                 )
                             }
                             if (sortedDevices.isEmpty() && !isScanning) {
@@ -204,7 +249,7 @@ fun BleDeviceSelectionDialog(
                                 Text("Обновить", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                             }
                             OutlinedButton(
-                                onClick = onDismiss,
+                                onClick = animateOutAndDismiss,
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.outlinedButtonColors(

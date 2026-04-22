@@ -1,5 +1,6 @@
 package com.antago30.laboratory.ui.component.userManagementScreen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -81,6 +82,10 @@ fun DeleteUserConfirmationDialog(
             delay(200) // Длительность анимации выхода
             onDismiss()
         }
+    }
+
+    BackHandler(enabled = isVisible) {
+        animateOutAndDismiss()
     }
 
     Popup(
