@@ -102,6 +102,12 @@ void sendLogHistoryChunked() {
 // ------------------ Инициализация BLE сервера ------------------
 void initBLEServer() {
   BLEDevice::init("Laboratory");
+
+  // Устанавливаем максимальную мощность передатчика (+9 dBm)
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_P9);
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_P9);
+  esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_P9);
+
   BLEDevice::setMTU(512);
   
   pServer = BLEDevice::createServer();
@@ -139,6 +145,8 @@ void initBLEServer() {
   // Инициализация сканера
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setActiveScan(true);
+  pBLEScan->setInterval(100); // Интервал сканирования (мс)
+  pBLEScan->setWindow(99);    // Окно сканирования (мс) - почти непрерывное прослушивание
 }
 
 // -------------------------Функция сканирования и подключения к JDY-33 ----------
