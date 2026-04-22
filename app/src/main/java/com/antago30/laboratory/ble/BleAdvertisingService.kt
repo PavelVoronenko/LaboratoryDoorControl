@@ -12,14 +12,19 @@ import androidx.core.app.ActivityCompat
 import com.antago30.laboratory.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class BleAdvertisingService : Service() {
 
     private var bleAdvertiser: BleAdvertiser? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var watchdogJob: Job? = null
 
     private var currentServiceUuid: UUID? = null
     private var currentAdData: String? = null
@@ -73,6 +78,9 @@ class BleAdvertisingService : Service() {
                 currentServiceUuid = UUID.fromString(serviceUuidStr)
                 currentAdData = adData
 
+                // Останавливаем старый, если был
+                bleAdvertiser?.stopAdvertising()
+
                 bleAdvertiser = BleAdvertiser(
                     applicationContext,
                     currentServiceUuid!!,
@@ -80,6 +88,9 @@ class BleAdvertisingService : Service() {
                 )
 
                 bleAdvertiser?.startAdvertising()
+                
+                // Запускаем Watchdog для периодического перезапуска
+                startWatchdog()
             } catch (e: Exception) {
                 android.util.Log.e("BleAdvertisingService", "Error starting advertising", e)
                 stopSelf()
@@ -91,7 +102,31 @@ class BleAdvertisingService : Service() {
     }
 
     @SuppressLint("MissingPermission")
+    private fun startWatchdog() {
+        watchdogJob?.cancel()
+        watchdogJob = serviceScope.launch {
+            while (isActive) {
+                // Ждем 4 часа
+                delay(4 * 60 * 60 * 1000L)
+                
+                android.util.Log.d("BleAdvertisingService", "Watchdog: Periodic restart of advertising")
+                
+                bleAdvertiser?.let { adv ->
+                    try {
+                        adv.stopAdvertising()
+                        delay(1000) // Пауза для сброса стека
+                        adv.startAdvertising()
+                    } catch (e: Exception) {
+                        android.util.Log.e("BleAdvertisingService", "Watchdog error during restart", e)
+                    }
+                }
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
     override fun onDestroy() {
+        watchdogJob?.cancel()
         serviceScope.cancel()
         bleAdvertiser?.let { advertiser ->
             try {
