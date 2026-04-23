@@ -46,6 +46,10 @@ int findDeviceByMAC(const TrustedDevice* array, int count, const String& mac);
 // ------------------ Поиск устройства по UUID + ServiceData ------------------
 int findDeviceByUUID(const TrustedDevice* array, int count, const String& uuid, const String& serviceData);
 
+// ------------------ Управление флагом перезагрузки ------------------
+void setManualRebootFlag(bool status);
+bool getManualRebootFlag();
+
 // Глобальные переменные
 extern Preferences usersPrefs;
 extern TrustedDevice trustedDevices[];

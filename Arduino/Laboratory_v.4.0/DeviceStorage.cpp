@@ -110,3 +110,12 @@ int findDeviceByUUID(const TrustedDevice* array, int count, const String& uuid, 
   }
   return -1;
 }
+
+// ------------------ Управление флагом перезагрузки ------------------
+void setManualRebootFlag(bool status) {
+  usersPrefs.putBool("reboot_flag", status);
+}
+
+bool getManualRebootFlag() {
+  return usersPrefs.getBool("reboot_flag", false);
+}

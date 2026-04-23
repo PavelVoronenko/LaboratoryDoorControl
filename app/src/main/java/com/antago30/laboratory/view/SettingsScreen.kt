@@ -154,6 +154,7 @@ fun SettingsScreen(
                     }
                 },
                 onReconnectJde = { viewModel.reconnectJde() },
+                onReboot = { viewModel.rebootController() },
                 showBleButton = true,
                 connectionState = bleConnectionState,
                 isJdeConnected = isJdeConnected

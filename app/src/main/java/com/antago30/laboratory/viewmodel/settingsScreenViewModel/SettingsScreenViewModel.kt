@@ -207,6 +207,13 @@ class SettingsScreenViewModel(
         }
     }
 
+    @Suppress("MissingPermission")
+    fun rebootController() {
+        viewModelScope.launch {
+            connectionManager.sendCommand("REBOOT")
+        }
+    }
+
     fun clearLogs() {
         _terminalLogs.value = emptyList()
     }

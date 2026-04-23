@@ -194,6 +194,13 @@ void commandHandler() {
       }
     }
 
+    // REBOOT — ручная перезагрузка контроллера
+    if (cmd.equalsIgnoreCase("REBOOT")) {
+      setManualRebootFlag(true);
+      delay(200);
+      ESP.restart();
+    }
+
     rxValue = "";
   }
 }

@@ -26,6 +26,8 @@ import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -52,6 +54,7 @@ fun SettingsHeader(
     onBack: () -> Unit,
     onBleDeviceClick: () -> Unit = {},
     onReconnectJde: () -> Unit = {},
+    onReboot: () -> Unit = {},
     showBleButton: Boolean = true,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     isJdeConnected: Boolean = false
@@ -66,6 +69,10 @@ fun SettingsHeader(
     val animatedRefreshScale by animateFloatAsState(targetValue = refreshScale, label = "")
 
     val isConnected = connectionState == ConnectionState.READY
+
+    // Логика секретной кнопки перезагрузки
+    var clickCount by remember { mutableIntStateOf(0) }
+    var lastClickTime by remember { mutableLongStateOf(0L) }
 
     // Анимация моргания для кнопки переподключения
     val infiniteTransition = rememberInfiniteTransition(label = "blinking")
@@ -113,6 +120,32 @@ fun SettingsHeader(
                 modifier = Modifier.size(32.dp)
             )
         }
+
+        // === Секретная кнопка перезагрузки (невидимая) ===
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 44.dp)
+                .size(44.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastClickTime > 5000) {
+                            clickCount = 1
+                        } else {
+                            clickCount++
+                        }
+                        lastClickTime = currentTime
+
+                        if (clickCount >= 7) {
+                            clickCount = 0
+                            onReboot()
+                        }
+                    }
+                )
+        )
 
         // === Центр: заголовок ===
         Text(
