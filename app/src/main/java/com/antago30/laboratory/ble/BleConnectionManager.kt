@@ -30,6 +30,11 @@ class BleConnectionManager(
     private val coroutineScope: CoroutineScope,
     private val settingsRepo: SettingsRepository
 ) {
+    init {
+        // Сохраняем экземпляр для переиспользования (например, виджетом)
+        activeInstance = this
+    }
+
     // UUIDs
     companion object {
         val SERVICE_UUID: UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
@@ -37,11 +42,15 @@ class BleConnectionManager(
 
         val SYSTEM_MESSAGE_CHARACTERISTIC: UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
         val TERMINAL_CHARACTERISTIC: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
+
+        @Volatile
+        var activeInstance: BleConnectionManager? = null
+            private set
     }
 
     // Компоненты
     private val connectionState = BleConnectionState()
-    private val callbackHandler = BleGattCallbackHandler(
+    val callbackHandler = BleGattCallbackHandler(
         connectionState = connectionState,
         coroutineScope = coroutineScope
     )

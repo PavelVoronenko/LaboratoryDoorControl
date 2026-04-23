@@ -8,4 +8,7 @@
     <string name="settings">Настройки</string>
     <string name="startAdvertising">Реклама запущена</string>
     <string name="addUser">addUser</string>
+    <string name="widget_name">Лаборатория: Быстрый доступ</string>
+    <string name="widget_door">Дверь</string>
+    <string name="widget_light">Свет</string>
 </resources>

@@ -17,7 +17,14 @@ class BleConnectionHandler(
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): Boolean {
         return try {
-            gatt = device.connectGatt(context, autoConnect, callback, BluetoothDevice.TRANSPORT_LE)
+            // Используем транспорт LE и форсируем PHY 1M для стабильности и скорости
+            gatt = device.connectGatt(
+                context, 
+                autoConnect, 
+                callback, 
+                BluetoothDevice.TRANSPORT_LE, 
+                BluetoothDevice.PHY_LE_1M_MASK
+            )
             gatt != null
         } catch (e: SecurityException) {
             android.util.Log.e("BleConnectionHandler", "❌ connect: Permission denied", e)

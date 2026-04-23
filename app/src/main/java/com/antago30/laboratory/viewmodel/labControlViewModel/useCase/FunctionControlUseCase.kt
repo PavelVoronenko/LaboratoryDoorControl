@@ -3,6 +3,7 @@ package com.antago30.laboratory.viewmodel.labControlViewModel.useCase
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
+import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,7 +13,10 @@ class FunctionControlUseCase(
     private val onAdvertisingToggle: (Boolean) -> Unit,
     initialFunctions: List<FunctionItem>
 ) {
-    private val _functions = MutableStateFlow(initialFunctions)
+    private val settingsRepo: SettingsRepository = connectionManager.getSettingsRepository()
+    private val _functions = MutableStateFlow(initialFunctions.map { 
+        if (it.id == "lighting") it.copy(isEnabled = settingsRepo.getLightingState()) else it
+    })
     val functions: StateFlow<List<FunctionItem>> = _functions.asStateFlow()
 
     private val _isJdeConnected = MutableStateFlow(false)
@@ -45,6 +49,7 @@ class FunctionControlUseCase(
      * Синхронизирует состояние функции "Освещение" с данными от контроллера
      */
     fun syncLightingState(isLightOn: Boolean, currentTime: Long, debounceMs: Long = 1000) {
+        settingsRepo.saveLightingState(isLightOn)
         val currentList = _functions.value
         val updatedList = currentList.map { func ->
             if (func.id == "lighting" && func.isEnabled != isLightOn) {

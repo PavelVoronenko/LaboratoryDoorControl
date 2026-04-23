@@ -25,6 +25,7 @@ class SettingsRepository(context: Context) {
         private const val CURRENT_USER_ID = "current_user_id"
         private const val CURRENT_USER_INFO_JSON = "current_user_info_json"
         private const val CACHED_USER_INFO_LIST_JSON = "cached_user_info_list_json"
+        private const val LIGHTING_STATE = "lighting_state"
     }
 
     private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
@@ -260,6 +261,14 @@ class SettingsRepository(context: Context) {
             remove(CURRENT_USER_INFO_JSON)
         }
         _currentUserIdFlow.value = null
+    }
+
+    fun saveLightingState(isOn: Boolean) {
+        prefs.edit { putBoolean(LIGHTING_STATE, isOn) }
+    }
+
+    fun getLightingState(): Boolean {
+        return prefs.getBoolean(LIGHTING_STATE, false)
     }
 
     // Методы для кэширования UserInfo от контроллера

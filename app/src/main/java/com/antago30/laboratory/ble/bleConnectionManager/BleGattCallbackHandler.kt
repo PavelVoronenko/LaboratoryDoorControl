@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 class BleGattCallbackHandler(
     private val connectionState: BleConnectionState,
     private val coroutineScope: CoroutineScope,
-    private val onServicesReady: () -> Unit = {}
+    var onReadyAction: (() -> Unit)? = null
 ) : BluetoothGattCallback() {
 
     private val _commandResults = MutableSharedFlow<CommandResult>()
@@ -37,6 +37,9 @@ class BleGattCallbackHandler(
         when (newState) {
             BluetoothProfile.STATE_CONNECTED -> {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
+                    // Ускоряем обмен данными сразу после подключения
+                    gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+
                     connectionState.update(ConnectionState.CONNECTED)
                     gatt.discoverServices()
                     connectionState.update(ConnectionState.SERVICES_DISCOVERING)
@@ -55,7 +58,7 @@ class BleGattCallbackHandler(
     override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
         if (status == BluetoothGatt.GATT_SUCCESS) {
             connectionState.update(ConnectionState.READY)
-            onServicesReady()
+            onReadyAction?.invoke()
         } else {
             connectionState.update(ConnectionState.CONNECTED)
         }

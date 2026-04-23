@@ -36,6 +36,26 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <service
+            android:name=".widget.LabWidgetService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
+        <receiver
+            android:name=".widget.LabWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.antago30.laboratory.action.OPEN_DOOR" />
+                <action android:name="com.antago30.laboratory.action.TOGGLE_LIGHT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lab_widget_info" />
+        </receiver>
     </application>
 
 </manifest>
