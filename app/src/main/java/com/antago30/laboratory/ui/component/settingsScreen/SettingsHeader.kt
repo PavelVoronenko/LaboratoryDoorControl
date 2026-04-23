@@ -1,6 +1,11 @@
 package com.antago30.laboratory.ui.component.settingsScreen
 
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.InfiniteRepeatableSpec
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +67,18 @@ fun SettingsHeader(
 
     val isConnected = connectionState == ConnectionState.READY
 
+    // Анимация моргания для кнопки переподключения
+    val infiniteTransition = rememberInfiniteTransition(label = "blinking")
+    val blinkingColor by infiniteTransition.animateColor(
+        initialValue = Color(0xFFF56565), // Красный
+        targetValue = Primary.copy(alpha = 0.25f), // Серый/прозрачный
+        animationSpec = InfiniteRepeatableSpec(
+            animation = tween(durationMillis = 800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "blinkingColor"
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -112,37 +129,35 @@ fun SettingsHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Кнопка переподключения освещения
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .scale(if (isConnected && !isJdeConnected) animatedRefreshScale else 1f)
-                    .clip(CircleShape)
-                    .clickable(
-                        enabled = isConnected && !isJdeConnected,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(color = Primary, bounded = false),
-                        onClick = {
-                            refreshScale = 0.85f
-                            scope.launch {
-                                delay(100)
-                                refreshScale = 1f
-                                onReconnectJde()
+            // Кнопка переподключения освещения (только если НЕ подключено)
+            if (!isJdeConnected) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .scale(if (isConnected) animatedRefreshScale else 1f)
+                        .clip(CircleShape)
+                        .clickable(
+                            enabled = isConnected,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = Primary, bounded = false),
+                            onClick = {
+                                refreshScale = 0.85f
+                                scope.launch {
+                                    delay(100)
+                                    refreshScale = 1f
+                                    onReconnectJde()
+                                }
                             }
-                        }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lightbulb,
-                    contentDescription = "Переподключить освещение",
-                    tint = when {
-                        !isConnected -> Primary.copy(alpha = 0.25f)
-                        isJdeConnected -> Primary // Зеленый если подключено
-                        else -> Color(0xFFF56565) // Красный если не подключено
-                    },
-                    modifier = Modifier.size(28.dp)
-                )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lightbulb,
+                        contentDescription = "Переподключить освещение",
+                        tint = if (isConnected) blinkingColor else Primary.copy(alpha = 0.25f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             // Кнопка BLE

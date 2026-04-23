@@ -67,14 +67,14 @@ void lightSwitches(String command, String message) {
 
     uint8_t cmd[] = {0xA0, 0x01, 0x01, 0xA2};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
-    log(message, LOG_INFO);
+    //log(message, LOG_INFO);
   }
   else if (jdeConnect && command == "lightOFF") {
     lightStatus = "LIGHTSTATUS:0";
 
     uint8_t cmd[] = {0xA0, 0x01, 0x00, 0xA1};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
-    log(message, LOG_INFO);
+    //log(message, LOG_INFO);
   } else {
     log("JDE-33 не подключен", LOG_WARN);
   }
