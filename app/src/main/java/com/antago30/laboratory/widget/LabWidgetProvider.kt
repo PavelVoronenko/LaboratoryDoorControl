@@ -212,18 +212,24 @@ class LabWidgetProvider : AppWidgetProvider() {
             val isLightOn = settingsRepo.getLightingState()
             val isJdeConnected = settingsRepo.getJdeConnectionState()
 
+            // Дверь всегда в нейтральном серебристом стиле
+            views.setInt(R.id.img_door, "setColorFilter", "#E0E0E0".toColorInt())
+
+            // Лампочка меняет цвет в зависимости от состояния
+            // Мы используем setColorFilter только для обычного состояния. 
+            // При нажатии система сама подменит иконку на черную из XML.
             val lightColor = when {
-                !isJdeConnected -> "#F44336".toColorInt()
-                isLightOn -> "#4FC3F7".toColorInt()
-                else -> "#9E9E9E".toColorInt()
+                !isJdeConnected -> "#EF5350".toColorInt() // Мягкий красный
+                isLightOn -> "#E0E0E0".toColorInt()      // Нейтрально-белый
+                else -> "#757575".toColorInt()           // Глубокий серый (выключен)
             }
             views.setInt(R.id.img_light, "setColorFilter", lightColor)
 
             val openDoorIntent = Intent(context, LabWidgetProvider::class.java).apply { action = ACTION_OPEN_DOOR }
-            views.setOnClickPendingIntent(R.id.btn_open_door, PendingIntent.getBroadcast(context, 0, openDoorIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE))
+            views.setOnClickPendingIntent(R.id.btn_open_door, PendingIntent.getBroadcast(context, 0, openDoorIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
             val lightIntent = Intent(context, LabWidgetProvider::class.java).apply { action = ACTION_TOGGLE_LIGHT }
-            views.setOnClickPendingIntent(R.id.btn_toggle_light, PendingIntent.getBroadcast(context, 1, lightIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE))
+            views.setOnClickPendingIntent(R.id.btn_toggle_light, PendingIntent.getBroadcast(context, 1, lightIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
