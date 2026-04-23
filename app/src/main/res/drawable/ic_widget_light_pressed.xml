@@ -6,10 +6,13 @@
     <group
         android:pivotX="12"
         android:pivotY="12"
-        android:scaleX="0.75"
-        android:scaleY="0.75">
+        android:scaleX="0.8"
+        android:scaleY="0.8">
         <path
-            android:fillColor="#FFFFFF"
-            android:pathData="M9,21c0,0.55 0.45,1 1,1h4c0.55,0 1,-0.45 1,-1v-1L9,20v1zM12,2C8.14,2 5,5.14 5,9c0,2.38 1.19,4.47 3,5.74L8,17c0,0.55 0.45,1 1,1h6c0.55,0 1,-0.45 1,-1v-2.26c1.81,-1.27 3,-3.36 3,-5.74 0,-3.86 -3.14,-7 -7,-7z" />
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M12,2c-3.86,0 -7,3.14 -7,7 0,2.38 1.19,4.47 3,5.74V17c0,0.55 0.45,1 1,1h6c0.55,0 1,-0.45 1,-1v-2.26c1.81,-1.27 3,-3.36 3,-5.74 0,-3.86 -3.14,-7 -7,-7z M12,5c-2.21,0 -4,1.79 -4,4c0,1.45 0.89,2.69 2.15,3.33 M13.85,12.33C15.11,11.69 16,10.45 16,9c0,-2.21 -1.79,-4 -4,-4 M9,21h6" />
     </group>
 </vector>
