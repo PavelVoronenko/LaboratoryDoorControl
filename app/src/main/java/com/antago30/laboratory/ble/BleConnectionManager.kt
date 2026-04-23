@@ -1,6 +1,7 @@
 package com.antago30.laboratory.ble
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGattCharacteristic
@@ -26,10 +27,12 @@ import kotlinx.coroutines.flow.StateFlow
 import java.util.UUID
 
 class BleConnectionManager(
-    private val context: Context,
+    context: Context,
     private val coroutineScope: CoroutineScope,
     private val settingsRepo: SettingsRepository
 ) {
+    private val context = context.applicationContext
+
     init {
         // Сохраняем экземпляр для переиспользования (например, виджетом)
         activeInstance = this
@@ -43,6 +46,7 @@ class BleConnectionManager(
         val SYSTEM_MESSAGE_CHARACTERISTIC: UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
         val TERMINAL_CHARACTERISTIC: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
 
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         var activeInstance: BleConnectionManager? = null
             private set

@@ -38,15 +38,9 @@ class BleAdvertisingService : Service() {
         super.onCreate()
         try {
             NotificationHelper.createNotificationChannel(applicationContext)
-        } catch (e: Exception) {
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = NotificationHelper.createNotification(this)
-
-        try {
+            
+            // Запускаем Foreground сразу в onCreate, чтобы избежать ForegroundServiceDidNotStartInTimeException
+            val notification = NotificationHelper.createNotification(this)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     NotificationHelper.NOTIFICATION_ID,
@@ -57,28 +51,29 @@ class BleAdvertisingService : Service() {
                 startForeground(NotificationHelper.NOTIFICATION_ID, notification)
             }
         } catch (e: Exception) {
-            stopSelf()
-            return START_NOT_STICKY
+            android.util.Log.e("BleAdvertisingService", "Failed to start as foreground in onCreate", e)
         }
+    }
 
+    @SuppressLint("MissingPermission")
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.BLUETOOTH_ADVERTISE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            stopSelf()
             return START_NOT_STICKY
         }
 
         val serviceUuidStr = intent?.getStringExtra(EXTRA_SERVICE_UUID)
         val adData = intent?.getStringExtra(EXTRA_AD_DATA) ?: "J7hs2Ak98g"
 
-        // Запускаем BLE в фоне
         if (serviceUuidStr != null) {
             try {
                 currentServiceUuid = UUID.fromString(serviceUuidStr)
                 currentAdData = adData
 
-                // Останавливаем старый, если был
                 bleAdvertiser?.stopAdvertising()
 
                 bleAdvertiser = BleAdvertiser(
@@ -88,13 +83,9 @@ class BleAdvertisingService : Service() {
                 )
 
                 bleAdvertiser?.startAdvertising()
-                
-                // Запускаем Watchdog для периодического перезапуска
                 startWatchdog()
             } catch (e: Exception) {
                 android.util.Log.e("BleAdvertisingService", "Error starting advertising", e)
-                stopSelf()
-                return START_NOT_STICKY
             }
         }
 
@@ -106,18 +97,14 @@ class BleAdvertisingService : Service() {
         watchdogJob?.cancel()
         watchdogJob = serviceScope.launch {
             while (isActive) {
-                // Ждем 4 часа
                 delay(4 * 60 * 60 * 1000L)
-                
-                android.util.Log.d("BleAdvertisingService", "Watchdog: Periodic restart of advertising")
-                
                 bleAdvertiser?.let { adv ->
                     try {
                         adv.stopAdvertising()
-                        delay(1000) // Пауза для сброса стека
+                        delay(1000)
                         adv.startAdvertising()
                     } catch (e: Exception) {
-                        android.util.Log.e("BleAdvertisingService", "Watchdog error during restart", e)
+                        android.util.Log.e("BleAdvertisingService", "Watchdog error", e)
                     }
                 }
             }
@@ -128,16 +115,9 @@ class BleAdvertisingService : Service() {
     override fun onDestroy() {
         watchdogJob?.cancel()
         serviceScope.cancel()
-        bleAdvertiser?.let { advertiser ->
-            try {
-                advertiser.stopAdvertising()
-            } catch (e: Exception) {
-                android.util.Log.e("BleAdvertisingService", "Error stopping advertising", e)
-            }
-        }
+        bleAdvertiser?.stopAdvertising()
         super.onDestroy()
         stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

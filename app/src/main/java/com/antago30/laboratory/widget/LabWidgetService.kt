@@ -36,6 +36,14 @@ class LabWidgetService : Service() {
         super.onCreate()
         settingsRepo = SettingsRepository(applicationContext)
         NotificationHelper.createNotificationChannel(applicationContext)
+
+        // Запускаем Foreground сразу в onCreate для надежности
+        val notification = NotificationHelper.createNotification(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(2002, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
+        } else {
+            startForeground(2002, notification)
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -45,13 +53,6 @@ class LabWidgetService : Service() {
 
         // Отменяем таймер отключения, так как пришло новое действие
         disconnectJob?.cancel()
-
-        val notification = NotificationHelper.createNotification(this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(2002, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
-        } else {
-            startForeground(2002, notification)
-        }
 
         serviceScope.launch {
             try {
@@ -101,6 +102,7 @@ class LabWidgetService : Service() {
         ).also { widgetManager = it }
     }
 
+    @Suppress("MissingPermission")
     private fun startDisconnectTimer() {
         disconnectJob?.cancel()
         disconnectJob = serviceScope.launch {
@@ -116,6 +118,7 @@ class LabWidgetService : Service() {
         }
     }
 
+    @Suppress("MissingPermission")
     private fun executeCommand(manager: BleConnectionManager, action: String) {
         when (action) {
             "OPENDOOR" -> manager.sendCommand("OPENDOOR")
@@ -128,6 +131,7 @@ class LabWidgetService : Service() {
         }
     }
 
+    @Suppress("MissingPermission")
     override fun onDestroy() {
         serviceScope.cancel()
         widgetManager?.disconnect()

@@ -39,17 +39,19 @@ class AdvertisingServiceUseCase(
             return
         }
 
-        if (hasNotificationPermission(ctx)) {
-            launchAdvertising(ctx)
-        } else {
-            Log.w("AdvertisingUseCase", "No notification permission, retrying in 500ms")
-            kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) {
+        // Добавляем небольшую задержку, чтобы Activity успела вернуться в фокус
+        // после закрытия диалога разрешений. Это критично для Android 14.
+        kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) {
+            if (!hasNotificationPermission(ctx)) {
                 delay(500)
-                if (hasNotificationPermission(ctx)) {
-                    launchAdvertising(ctx)
-                } else {
-                    Log.w("AdvertisingUseCase", "Still no notification permission after retry")
-                }
+            } else {
+                delay(100)
+            }
+            
+            if (hasNotificationPermission(ctx)) {
+                launchAdvertising(ctx)
+            } else {
+                Log.w("AdvertisingUseCase", "Still no notification permission")
             }
         }
     }
