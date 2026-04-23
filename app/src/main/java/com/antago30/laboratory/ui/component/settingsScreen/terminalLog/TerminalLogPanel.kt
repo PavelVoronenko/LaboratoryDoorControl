@@ -357,14 +357,15 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
     ) {
         Text(
             text = entry.getFormattedTime(),
-            modifier = Modifier.width(64.dp),
             color = entry.getTimeColor(),
             fontSize = 13.sp,
             fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            softWrap = false
         )
         
-        //Spacer(modifier = Modifier.width(15.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         
         Text(
             text = entry.message,
