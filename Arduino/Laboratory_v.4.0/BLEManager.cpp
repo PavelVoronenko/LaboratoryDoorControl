@@ -100,6 +100,40 @@ void sendLogHistoryChunked() {
 }
 
 // ------------------ Инициализация BLE сервера ------------------
+void updateAdvertising() {
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+
+  // Останавливаем рекламу перед обновлением данных
+  pAdvertising->stop();
+
+  // Основной пакет: только имя и флаги (чтобы точно влезло в 31 байт)
+  BLEAdvertisementData advData;
+  advData.setName("Laboratory");
+  advData.setFlags(0x06);
+  pAdvertising->setAdvertisementData(advData);
+
+  // Пакет Scan Response: здесь передаем данные о состоянии
+  BLEAdvertisementData resData;
+  resData.setCompleteServices(BLEUUID(SERVICE_UUID));
+
+  uint8_t status = (lightStatus == "LIGHTSTATUS:1") ? 1 : 0;
+  uint8_t jdeStatus = jdeConnect ? 1 : 0;
+  uint8_t sData[2] = {status, jdeStatus};
+
+  // Используем 16-битный UUID FFE0 для Service Data (экономит много места)
+  resData.setServiceData(BLEUUID((uint16_t)0xFFE0), String((char*)sData, 2));
+
+  pAdvertising->setScanResponseData(resData);
+
+  // Устанавливаем агрессивный интервал рекламы (20мс - 40мс)
+  // Это позволит телефонам мгновенно "слышать" изменения
+  pAdvertising->setMinInterval(0x20); // 20ms * 0.625
+  pAdvertising->setMaxInterval(0x40); // 40ms * 0.625
+
+  pAdvertising->start();
+  Serial.println("📢 Adv Updated: Light=" + String(status) + ", JDE=" + String(jdeStatus));
+}
+
 void initBLEServer() {
   BLEDevice::init("Laboratory");
 
@@ -135,12 +169,8 @@ void initBLEServer() {
   Terminal->setCallbacks(new CharacteristicCallBack());
   pService->start();
 
-  // Запускаем рекламу
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0);
-  BLEDevice::startAdvertising();
+  // Запускаем рекламу с актуальными данными
+  updateAdvertising();
 
   // Инициализация сканера
   pBLEScan = BLEDevice::getScan();

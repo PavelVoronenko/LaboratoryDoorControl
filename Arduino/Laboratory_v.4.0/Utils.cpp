@@ -67,6 +67,7 @@ void lightSwitches(String command, String message) {
 
     uint8_t cmd[] = {0xA0, 0x01, 0x01, 0xA2};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
+    updateAdvertising(); // Обновляем BLE рекламу
     //log(message, LOG_INFO);
   }
   else if (jdeConnect && command == "lightOFF") {
@@ -74,6 +75,7 @@ void lightSwitches(String command, String message) {
 
     uint8_t cmd[] = {0xA0, 0x01, 0x00, 0xA1};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
+    updateAdvertising(); // Обновляем BLE рекламу
     //log(message, LOG_INFO);
   } else {
     log("JDE-33 не подключен", LOG_WARN);
@@ -82,6 +84,7 @@ void lightSwitches(String command, String message) {
 
 // ---------- Проверка людей внутри и автоматическое включение освещения ------------
 void checkPeopleInside() {
+  bool oldJde = jdeConnect;
   byte numberOfPeopleInside = 0;
 
   for (int i = 0; i < trustedDevicesCount; i++) {
@@ -95,5 +98,10 @@ void checkPeopleInside() {
   } else if (numberOfPeopleInside == 0 && autoLightOutside) {
     autoLightOutside = false;
     lightSwitches("lightOFF", "Автоматическое отключение освещения");
+  }
+
+  // Если статус соединения с JDY-33 изменился, обновляем рекламу
+  if (oldJde != jdeConnect) {
+    updateAdvertising();
   }
 }

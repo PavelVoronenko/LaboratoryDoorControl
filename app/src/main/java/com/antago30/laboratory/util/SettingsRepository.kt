@@ -26,6 +26,7 @@ class SettingsRepository(context: Context) {
         private const val CURRENT_USER_INFO_JSON = "current_user_info_json"
         private const val CACHED_USER_INFO_LIST_JSON = "cached_user_info_list_json"
         private const val LIGHTING_STATE = "lighting_state"
+        private const val JDE_CONNECTION_STATE = "jde_connection_state"
     }
 
     private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
@@ -269,6 +270,14 @@ class SettingsRepository(context: Context) {
 
     fun getLightingState(): Boolean {
         return prefs.getBoolean(LIGHTING_STATE, false)
+    }
+
+    fun saveJdeConnectionState(isConnected: Boolean) {
+        prefs.edit { putBoolean(JDE_CONNECTION_STATE, isConnected) }
+    }
+
+    fun getJdeConnectionState(): Boolean {
+        return prefs.getBoolean(JDE_CONNECTION_STATE, false) // По умолчанию считаем что связи нет (красный)
     }
 
     // Методы для кэширования UserInfo от контроллера

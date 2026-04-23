@@ -163,5 +163,9 @@ class BleConnectionManager(
         return gatt.requestMtu(size)
     }
 
+    fun updateWidgets() {
+        com.antago30.laboratory.widget.LabWidgetProvider.triggerUpdate(context)
+    }
+
     fun getSettingsRepository() = settingsRepo
 }

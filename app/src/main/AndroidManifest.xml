@@ -37,12 +37,6 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
 
-        <service
-            android:name=".widget.LabWidgetService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
-
         <receiver
             android:name=".widget.LabWidgetProvider"
             android:exported="true">
@@ -50,6 +44,7 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.antago30.laboratory.action.OPEN_DOOR" />
                 <action android:name="com.antago30.laboratory.action.TOGGLE_LIGHT" />
+                <action android:name="com.antago30.laboratory.action.BLE_SCAN_RESULT" />
             </intent-filter>
 
             <meta-data

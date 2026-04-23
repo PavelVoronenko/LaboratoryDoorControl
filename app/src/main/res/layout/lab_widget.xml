@@ -20,6 +20,7 @@
         android:padding="10dp">
 
         <ImageView
+            android:id="@+id/img_door"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/widget_door"
@@ -42,6 +43,7 @@
         android:padding="10dp">
 
         <ImageView
+            android:id="@+id/img_light"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/widget_light"

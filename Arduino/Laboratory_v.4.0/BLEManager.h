@@ -36,6 +36,7 @@ extern DevicesDetected devicesDetected[10];
 
 // ------------------ Инициализация BLE сервера ------------------
 void initBLEServer();
+void updateAdvertising();
 
 // ------------------ Сканирование и подключение к JDY-33 ------------------
 bool scanAndConnect();

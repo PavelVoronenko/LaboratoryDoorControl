@@ -19,7 +19,7 @@ class FunctionControlUseCase(
     })
     val functions: StateFlow<List<FunctionItem>> = _functions.asStateFlow()
 
-    private val _isJdeConnected = MutableStateFlow(false)
+    private val _isJdeConnected = MutableStateFlow(settingsRepo.getJdeConnectionState())
     val isJdeConnected: StateFlow<Boolean> = _isJdeConnected.asStateFlow()
 
     fun toggleFunction(
@@ -45,9 +45,6 @@ class FunctionControlUseCase(
         _functions.value = updatedList  // ← Обновляем StateFlow
     }
 
-    /**
-     * Синхронизирует состояние функции "Освещение" с данными от контроллера
-     */
     fun syncLightingState(isLightOn: Boolean, currentTime: Long, debounceMs: Long = 1000) {
         settingsRepo.saveLightingState(isLightOn)
         val currentList = _functions.value
@@ -57,6 +54,7 @@ class FunctionControlUseCase(
             } else func
         }
         _functions.value = updatedList
+        connectionManager.updateWidgets()
     }
 
     fun getFunctionState(id: String): Boolean =
@@ -73,6 +71,8 @@ class FunctionControlUseCase(
     }
 
     fun setJdeConnected(connected: Boolean) {
+        settingsRepo.saveJdeConnectionState(connected)
         _isJdeConnected.value = connected
+        connectionManager.updateWidgets()
     }
 }
