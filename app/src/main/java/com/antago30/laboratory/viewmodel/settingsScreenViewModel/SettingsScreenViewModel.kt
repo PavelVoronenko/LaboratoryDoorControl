@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ble.BleScanner
 import com.antago30.laboratory.model.BleDevice
+import com.antago30.laboratory.model.UserInfo
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.FunctionControlUseCase
 import kotlinx.coroutines.Job
@@ -58,6 +59,14 @@ class SettingsScreenViewModel(
     private val _isTerminalActive = MutableStateFlow(false)
     val isTerminalActive: StateFlow<Boolean> = _isTerminalActive.asStateFlow()
 
+    private val _currentUserInfo = MutableStateFlow(settingsRepo.getCurrentUserInfo())
+    val currentUserInfo: StateFlow<UserInfo?> = _currentUserInfo.asStateFlow()
+
+    // === Буфер для сборки чанков USERLIST ===
+    private val userListChunks = mutableMapOf<Int, String>()
+    private var userListTotalChunks = 0
+    private var userListReceiving = false
+
     var selectedDeviceName by mutableStateOf<String?>(null)
         private set
 
@@ -73,6 +82,124 @@ class SettingsScreenViewModel(
 
     init {
         loadSavedDevice()
+        viewModelScope.launch {
+            settingsRepo.currentUserIdFlow.collect {
+                _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
+            }
+        }
+
+        // Слушаем входящие данные для обновления информации о пользователе
+        viewModelScope.launch {
+            connectionManager.characteristicData.collect { data ->
+                val response = String(data.value.toByteArray(), Charsets.UTF_8).trim()
+                if (response.startsWith("USERLIST_PKT:")) {
+                    handleUserListChunk(response)
+                }
+            }
+        }
+    }
+
+    private fun handleUserListChunk(packet: String) {
+        try {
+            val headerEnd = packet.indexOf('|')
+            if (headerEnd == -1) return
+
+            val header = packet.substring(13, headerEnd)
+            val headerParts = header.split('/')
+            val chunkIndex = headerParts[0].toInt()
+            val totalChunks = if (headerParts.size > 1) headerParts[1].toIntOrNull() ?: -1 else -1
+
+            val dataStart = headerEnd + 1
+            val hasEnd = packet.endsWith("|END")
+            val dataEnd = if (hasEnd) packet.length - 4 else packet.length
+            val chunkData = if (dataEnd <= dataStart) "" else packet.substring(dataStart, dataEnd)
+
+            if (chunkIndex == 0) {
+                userListChunks.clear()
+                userListReceiving = true
+                userListTotalChunks = totalChunks
+            }
+            
+            userListChunks[chunkIndex] = chunkData
+
+            if (hasEnd) {
+                assembleAndParseUserList()
+            }
+        } catch (e: Exception) {
+            Log.e("SettingsViewModel", "Error parsing chunk", e)
+        }
+    }
+
+    private fun assembleAndParseUserList() {
+        val sortedData = userListChunks.toSortedMap().values.joinToString("")
+        userListChunks.clear()
+        userListReceiving = false
+
+        if (sortedData.isBlank() || sortedData == "|") return
+
+        try {
+            val parsed = sortedData.split("|")
+                .filter { it.isNotBlank() }
+                .mapNotNull { entry ->
+                    val parts = entry.split(",")
+                    if (parts.size >= 8) {
+                        UserInfo(
+                            id = parts[0].toIntOrNull() ?: return@mapNotNull null,
+                            name = parts[1].trim(),
+                            macAddress = parts[2].trim(),
+                            location = parts[3].trim(),
+                            uuid = parts[4].trim(),
+                            serviceData = parts[5].trim(),
+                            rssiThresholdEntry = parts[6].toIntOrNull() ?: -70,
+                            rssiThresholdExit = parts[7].toIntOrNull() ?: -70
+                        )
+                    } else null
+                }
+            
+            // Обновляем текущего пользователя, если он есть в списке
+            settingsRepo.updateCurrentUserInfoFromList(parsed)
+            _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
+            Log.d("SettingsViewModel", "✅ Thresholds synchronized from controller")
+        } catch (e: Exception) {
+            Log.e("SettingsViewModel", "Error parsing user list", e)
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun fetchUsers() {
+        viewModelScope.launch {
+            if (connectionManager.connectionStateFlow.value == com.antago30.laboratory.model.ConnectionState.READY) {
+                connectionManager.sendCommand("LISTUSERS")
+            }
+        }
+    }
+
+    fun refreshData() {
+        _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
+        fetchUsers()
+    }
+
+    fun updateThresholds(entry: String, exit: String) {
+        val currentUserId = settingsRepo.getCurrentUserId() ?: return
+        val user = settingsRepo.getCurrentUserInfo() ?: return
+        
+        val entryInt = entry.replace(Regex("[^-\\d]"), "").toIntOrNull() ?: -70
+        val exitInt = exit.replace(Regex("[^-\\d]"), "").toIntOrNull() ?: -70
+
+        // Обновляем локальную копию данных пользователя
+        val updatedUser = user.copy(rssiThresholdEntry = entryInt, rssiThresholdExit = exitInt)
+        settingsRepo.saveCurrentUserInfo(updatedUser)
+        _currentUserInfo.value = updatedUser
+
+        // Отправляем на контроллер, используя ID напрямую из источника истины
+        viewModelScope.launch {
+            // Формат: SETTHRESH:id|entry|exit
+            val command = "SETTHRESH:$currentUserId|$entryInt|$exitInt"
+            
+            @Suppress("MissingPermission")
+            connectionManager.sendCommand(command)
+            Log.d("SettingsViewModel", "📤 Sent update for user $currentUserId: $command")
+        }
     }
 
     private fun parseLogEntry(raw: String): TerminalLogEntry {
@@ -84,7 +211,7 @@ class SettingsScreenViewModel(
 
         val timestamp = try {
             if (timeStr != null) LocalTime.parse(timeStr, TIME_FORMATTER) else LocalTime.now()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             LocalTime.now()
         }
 

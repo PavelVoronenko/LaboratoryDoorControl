@@ -46,12 +46,6 @@ class UserManagementViewModel(
         Log.d("UserManagementVM", "✅ Выбран пользователь: ${userInfo.name} (ID: ${userInfo.id})")
     }
 
-    fun clearCurrentUser() {
-        _currentUserId.value = null
-        connectionManager.getSettingsRepository().clearCurrentUserId()
-        connectionManager.getSettingsRepository().clearCurrentUserInfo()
-        Log.d("UserManagementVM", "🗑️ Текущий пользователь очищен")
-    }
 
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>() // key: index, value: data
@@ -155,8 +149,31 @@ class UserManagementViewModel(
                 .mapNotNull { entry ->
                     val parts = entry.split(",")
 
-                    // ✅ Проверяем наличие всех 6 полей
-                    if (parts.size >= 6) {
+                    // ✅ Проверяем наличие всех полей (теперь 8)
+                    if (parts.size >= 8) {
+                        val id = parts[0].toIntOrNull()
+                        val name = parts[1].trim()
+                        val mac = parts[2].trim()
+                        val location = parts[3].trim()
+                        val uuid = parts[4].trim()
+                        val serviceData = parts[5].trim()
+                        val rssiEntry = parts[6].toIntOrNull() ?: -70
+                        val rssiExit = parts[7].toIntOrNull() ?: -70
+
+                        if (id != null && name.isNotBlank() && mac.isNotBlank()) {
+                            UserInfo(
+                                id = id,
+                                name = name,
+                                macAddress = mac,
+                                location = location,
+                                uuid = uuid,
+                                serviceData = serviceData,
+                                rssiThresholdEntry = rssiEntry,
+                                rssiThresholdExit = rssiExit
+                            )
+                        } else null
+                    } else if (parts.size >= 6) {
+                        // Совместимость со старым форматом
                         val id = parts[0].toIntOrNull()
                         val name = parts[1].trim()
                         val mac = parts[2].trim()
@@ -286,12 +303,6 @@ class UserManagementViewModel(
         }
 
         return (existingIds.lastOrNull() ?: 0) + 1
-    }
-
-    // === Вызови этот метод при открытии формы добавления ===
-    fun startAddingUser() {
-        _isAddingUser.value = true
-        // Можно дополнительно сбросить форму здесь
     }
 
     // === Утилиты ===

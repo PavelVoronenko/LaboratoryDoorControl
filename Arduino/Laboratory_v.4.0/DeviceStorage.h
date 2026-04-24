@@ -12,6 +12,8 @@ struct TrustedDeviceNVS {
   char uuid[37];             // UUID формата: 00000000-0000-0000-0000-000000000000
   char serviceDataHex[32];   // Service data
   char macAddress[18];       // MAC: XX:XX:XX:XX:XX:XX
+  int rssiThresholdEntry;    // Порог RSSI для входа
+  int rssiThresholdExit;     // Порог RSSI для выхода
 };
 
 // ------------------ Структура доверенного устройства ------------------
@@ -22,7 +24,8 @@ struct TrustedDevice {
   String serviceDataHex;
   String macAddress;
   String location; // "inside" или "outside"
-  int rssiThreshold;  // порог RSSI для открытия
+  int rssiThresholdEntry;
+  int rssiThresholdExit;
   uint64_t userTime;
   bool entryInProgress;
   bool exitInProgress;

@@ -7,5 +7,7 @@ data class UserInfo(
     val location: String,
     val isSelected: Boolean = false,
     val uuid: String,
-    val serviceData: String
+    val serviceData: String,
+    val rssiThresholdEntry: Int = -70,
+    val rssiThresholdExit: Int = -70
 )

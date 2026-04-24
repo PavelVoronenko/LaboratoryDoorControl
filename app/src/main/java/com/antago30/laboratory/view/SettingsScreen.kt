@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.antago30.laboratory.ui.component.settingsScreen.RssiThresholdSection
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
 import com.antago30.laboratory.ui.component.settingsScreen.bleDeviceSelectionDialog.BleDeviceSelectionDialog
 import com.antago30.laboratory.ui.component.settingsScreen.terminalLog.TerminalLogPanel
@@ -71,10 +72,12 @@ fun SettingsScreen(
     val terminalLogs by viewModel.terminalLogs.collectAsState()
     val isTerminalActive by viewModel.isTerminalActive.collectAsState()
     val isJdeConnected by viewModel.functionUseCase.isJdeConnected.collectAsState()
+    val currentUserInfo by viewModel.currentUserInfo.collectAsState()
 
     // Управление наблюдением за логами терминала
     LaunchedEffect(Unit) {
         viewModel.startTerminalObservation()
+        viewModel.refreshData() // Обновляем данные текущего пользователя при каждом заходе
     }
 
     androidx.compose.runtime.DisposableEffect(Unit) {
@@ -89,9 +92,10 @@ fun SettingsScreen(
             connectionManager.subscribeToSensorData()
             connectionManager.requestMtu(200)
 
-            // Запрос истории логов после готовности сервисов
+            // Запрос истории логов и списка пользователей после готовности сервисов
             kotlinx.coroutines.delay(500)
             viewModel.requestLogHistory()
+            viewModel.fetchUsers()
         }
     }
 
@@ -231,6 +235,19 @@ fun SettingsScreen(
                     isTerminalActive = isTerminalActive,
                     isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
                 )
+
+                currentUserInfo?.let { user ->
+                    androidx.compose.runtime.key(user.id) {
+                        RssiThresholdSection(
+                            initialEntry = "${user.rssiThresholdEntry} дБм",
+                            initialExit = "${user.rssiThresholdExit} дБм",
+                            onThresholdsChanged = { entry, exit ->
+                                viewModel.updateThresholds(entry, exit)
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+                }
             }
         }
     }

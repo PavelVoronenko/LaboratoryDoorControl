@@ -6,15 +6,15 @@
 
 // ----------------------- Парсинг команды ADDUSER и сохранение в NVS -----------------------
 void addNewUserFromCommand(String params) {
-  // Формат: id|name|uuid|serviceData|mac|threshold
-  // Пример: 3|Анна|0000ff33-0000-1000-8000-00805f9b34fb|Abc123Xy|AA:BB:CC:DD:EE:FF|-65
+  // Формат: id|name|uuid|serviceData|mac|thresholdEntry|thresholdExit
+  // Пример: 3|Анна|0000ff33-0000-1000-8000-00805f9b34fb|Abc123Xy|AA:BB:CC:DD:EE:FF|-65|-70
 
   int delimiterIndex[6];
   int count = 0;
   int start = 0;
 
   // Парсим разделители '|'
-  for (int i = 0; i < params.length() && count < 5; i++) {
+  for (int i = 0; i < params.length() && count < 6; i++) {
     if (params[i] == '|') {
       delimiterIndex[count++] = i;
     }
@@ -31,7 +31,16 @@ void addNewUserFromCommand(String params) {
   String uuid = params.substring(delimiterIndex[1]+1, delimiterIndex[2]);
   String serviceData = params.substring(delimiterIndex[2]+1, delimiterIndex[3]);
   String mac = params.substring(delimiterIndex[3]+1, delimiterIndex[4]);
-  int rssiThreshold = params.substring(delimiterIndex[4]+1).toInt();
+
+  int rssiThresholdEntry, rssiThresholdExit;
+  if (count == 6) {
+    rssiThresholdEntry = params.substring(delimiterIndex[4]+1, delimiterIndex[5]).toInt();
+    rssiThresholdExit = params.substring(delimiterIndex[5]+1).toInt();
+  } else {
+    // Совместимость со старым форматом (один порог для обоих)
+    rssiThresholdEntry = params.substring(delimiterIndex[4]+1).toInt();
+    rssiThresholdExit = rssiThresholdEntry;
+  }
 
   // Нормализуем MAC-адрес: заменяем дефисы на двоеточия, приводим к верхнему регистру
   mac.replace("-", ":");
@@ -50,6 +59,8 @@ void addNewUserFromCommand(String params) {
   uuid.toCharArray(newUser.uuid, sizeof(newUser.uuid));
   serviceData.toCharArray(newUser.serviceDataHex, sizeof(newUser.serviceDataHex));
   mac.toCharArray(newUser.macAddress, sizeof(newUser.macAddress));
+  newUser.rssiThresholdEntry = rssiThresholdEntry;
+  newUser.rssiThresholdExit = rssiThresholdExit;
 
   // Сохраняем в NVS
   if (saveTrustedDevice(&newUser)) {
@@ -76,14 +87,43 @@ void addNewUserFromCommand(String params) {
     }
 
     // Устанавливаем порог для нового пользователя
-    int idx = findDeviceByMAC(trustedDevices, trustedDevicesCount, mac);
-    if (idx >= 0) {
-      trustedDevices[idx].rssiThreshold = rssiThreshold;
-    }
-
-    log("Пользователь '" + name + "' добавлен (id:" + String(id) + ")", LOG_USER);
+    log("Пользователь '" + name + "' добавлен/обновлён (id:" + String(id) + ")", LOG_USER);
   } else {
     log("Ошибка сохранения в NVS", LOG_WARN);
+  }
+}
+
+// ----------------------- Обновление только порогов RSSI -----------------------
+void updateThresholdsFromCommand(String params) {
+  // Формат: id|entry|exit
+  int firstPipe = params.indexOf('|');
+  int lastPipe = params.lastIndexOf('|');
+
+  if (firstPipe == -1 || lastPipe == -1 || firstPipe == lastPipe) return;
+
+  int id = params.substring(0, firstPipe).toInt();
+  int entryThreshold = params.substring(firstPipe + 1, lastPipe).toInt();
+  int exitThreshold = params.substring(lastPipe + 1).toInt();
+
+  // 1. Обновляем в runtime массиве
+  bool found = false;
+  for (int i = 0; i < trustedDevicesCount; i++) {
+    if (trustedDevices[i].id == id) {
+      trustedDevices[i].rssiThresholdEntry = entryThreshold;
+      trustedDevices[i].rssiThresholdExit = exitThreshold;
+      found = true;
+
+      // 2. Обновляем в NVS (нужно прочитать старые данные, изменить пороги и сохранить)
+      String key = "user_" + String(id);
+      TrustedDeviceNVS temp;
+      if (usersPrefs.getBytes(key.c_str(), &temp, sizeof(TrustedDeviceNVS)) == sizeof(TrustedDeviceNVS)) {
+        temp.rssiThresholdEntry = entryThreshold;
+        temp.rssiThresholdExit = exitThreshold;
+        saveTrustedDevice(&temp);
+        log(String(temp.name) + ": пороги обновлены", LOG_INFO);
+      }
+      break;
+    }
   }
 }
 
@@ -133,6 +173,12 @@ void commandHandler() {
     if (cmd.startsWith("ADDUSER:")) {
       String params = cmd.substring(8);
       addNewUserFromCommand(params);
+    }
+
+    // SETTHRESH:id|entry|exit
+    if (cmd.startsWith("SETTHRESH:")) {
+      String params = cmd.substring(10);
+      updateThresholdsFromCommand(params);
     }
 
     // DELUSER:id

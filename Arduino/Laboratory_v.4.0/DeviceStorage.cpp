@@ -38,6 +38,8 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
       outArray[count].uuid = String(temp.uuid);
       outArray[count].serviceDataHex = String(temp.serviceDataHex);
       outArray[count].macAddress = String(temp.macAddress);
+      outArray[count].rssiThresholdEntry = temp.rssiThresholdEntry;
+      outArray[count].rssiThresholdExit = temp.rssiThresholdExit;
 
       // Нормализуем MAC при загрузке
       outArray[count].macAddress.replace("-", ":");
@@ -45,7 +47,6 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
 
       // Runtime-поля
       outArray[count].location = "inside";
-      outArray[count].rssiThreshold = -70;
       outArray[count].userTime = 0;
       outArray[count].entryInProgress = false;
       outArray[count].exitInProgress = false;

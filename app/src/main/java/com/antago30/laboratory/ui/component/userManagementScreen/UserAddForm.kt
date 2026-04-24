@@ -208,7 +208,8 @@ fun UserAddForm(
                                 uuid = selectedUuid,
                                 serviceData = selectedServiceData,
                                 macAddress = macAddress.trim(),
-                                rssiThreshold = rssiThreshold.toIntOrNull() ?: -70
+                                rssiThresholdEntry = rssiThreshold.toIntOrNull() ?: -70,
+                                rssiThresholdExit = rssiThreshold.toIntOrNull() ?: -70
                             )
                             if (params.isValid()) {
                                 onAdd(params)

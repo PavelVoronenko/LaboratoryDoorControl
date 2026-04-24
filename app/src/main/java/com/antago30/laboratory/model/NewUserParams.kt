@@ -6,11 +6,12 @@ data class NewUserParams(
     val uuid: String,           // Формат: 00000000-0000-1000-8000-00805f9b34fb
     val serviceData: String,    // Service data hex
     val macAddress: String,     // Формат: XX:XX:XX:XX:XX:XX
-    val rssiThreshold: Int = -70 // По умолчанию
+    val rssiThresholdEntry: Int = -70,
+    val rssiThresholdExit: Int = -70
 ) {
-    // Форматируем команду для ESP32: ADDUSER:id|name|uuid|serviceData|mac|threshold
+    // Форматируем команду для ESP32: ADDUSER:id|name|uuid|serviceData|mac|entryThreshold|exitThreshold
     fun toEsp32Command(): String {
-        return "ADDUSER:$id|$name|$uuid|$serviceData|$macAddress|$rssiThreshold"
+        return "ADDUSER:$id|$name|$uuid|$serviceData|$macAddress|$rssiThresholdEntry|$rssiThresholdExit"
     }
 
     // Валидация полей

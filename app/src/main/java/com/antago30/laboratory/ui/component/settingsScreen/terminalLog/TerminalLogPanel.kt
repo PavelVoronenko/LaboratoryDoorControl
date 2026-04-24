@@ -133,7 +133,10 @@ fun TerminalLogPanel(
             .graphicsLayer { alpha = panelAlpha },
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.5.dp,
+            if (isEnabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+        ),
     ) {
         Column(
             modifier = Modifier
@@ -358,7 +361,7 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
         Text(
             text = entry.getFormattedTime(),
             color = entry.getTimeColor(),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -370,9 +373,9 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
         Text(
             text = entry.message,
             color = entry.getMessageColor(),
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontFamily = FontFamily.Monospace,
-            lineHeight = 16.sp,
+            lineHeight = 17.sp,
             modifier = Modifier.weight(1f)
         )
     }

@@ -11,6 +11,7 @@ void commandHandler();
 
 // ------------------ Добавление нового пользователя ------------------
 void addNewUserFromCommand(String params);
+void updateThresholdsFromCommand(String params);
 
 // ------------------ Функции из других модулей ------------------
 void openDoor(int pause, String source);

@@ -50,13 +50,6 @@ class SettingsRepository(context: Context) {
         return address
     }
 
-    fun clearSelectedDevice() {
-        prefs.edit {
-            remove(SELECTED_DEVICE_NAME)
-                .remove(SELECTED_DEVICE_ADDRESS)
-        }
-    }
-
     fun saveStaffList(staffList: List<StaffMember>) {
         val json = gson.toJson(staffList)
         prefs.edit {
@@ -84,43 +77,6 @@ class SettingsRepository(context: Context) {
             }
         } else {
             fallback
-        }
-    }
-
-    fun addStaffMember(newMember: StaffMember, fallback: List<StaffMember>): List<StaffMember> {
-        val currentList = getStaffList(fallback)
-        // Проверяем, нет ли сотрудника с таким id
-        if (currentList.any { it.id == newMember.id }) {
-            return currentList
-        }
-        val updatedList = currentList + newMember
-        saveStaffList(updatedList)
-        return updatedList
-    }
-
-    fun updateStaffMember(
-        id: String,
-        update: (StaffMember) -> StaffMember,
-        fallback: List<StaffMember>
-    ): List<StaffMember> {
-        val currentList = getStaffList(fallback)
-        val updatedList = currentList.map {
-            if (it.id == id) update(it) else it
-        }
-        saveStaffList(updatedList)
-        return updatedList
-    }
-
-    fun removeStaffMember(id: String, fallback: List<StaffMember>): List<StaffMember> {
-        val currentList = getStaffList(fallback)
-        val updatedList = currentList.filter { it.id != id }
-        saveStaffList(updatedList)
-        return updatedList
-    }
-
-    fun clearStaffList() {
-        prefs.edit {
-            remove(STAFF_LIST_JSON)
         }
     }
 
@@ -222,11 +178,6 @@ class SettingsRepository(context: Context) {
     fun getCurrentUserId(): String? =
         prefs.getString(CURRENT_USER_ID, null)
 
-    fun getCurrentUser(fallbackStaffList: List<StaffMember>): StaffMember? {
-        val currentUserId = getCurrentUserId()
-        return fallbackStaffList.find { it.id == currentUserId }
-    }
-
     fun clearCurrentUserId() {
         prefs.edit {
             remove(CURRENT_USER_ID)
@@ -300,6 +251,14 @@ class SettingsRepository(context: Context) {
             }
         } else {
             emptyList()
+        }
+    }
+
+    fun updateCurrentUserInfoFromList(allUsers: List<UserInfo>) {
+        val currentId = getCurrentUserId()?.toIntOrNull() ?: return
+        val updatedUser = allUsers.find { it.id == currentId }
+        if (updatedUser != null) {
+            saveCurrentUserInfo(updatedUser)
         }
     }
 }

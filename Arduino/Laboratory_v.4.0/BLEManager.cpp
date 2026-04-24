@@ -246,7 +246,8 @@ void scanForTrustedDevices() {
     // Проверка по MAC для всех устройств
     for (int j = 0; j < trustedDevicesCount; j++) {
       if (mac.equalsIgnoreCase(trustedDevices[j].macAddress)) {
-        if (rssi >= trustedDevices[j].rssiThreshold) {
+        int threshold = (trustedDevices[j].location == "outside") ? trustedDevices[j].rssiThresholdEntry : trustedDevices[j].rssiThresholdExit;
+        if (rssi >= threshold) {
           devicesDetected[devicesIndex].name = trustedDevices[j].name;
           devicesDetected[devicesIndex].rssi = rssi;
           devicesIndex++;
@@ -260,7 +261,8 @@ void scanForTrustedDevices() {
       String uuidStr = serviceUUID.toString().c_str();
       for (int j = 0; j < trustedDevicesCount; j++) {
         if (uuidStr.equalsIgnoreCase(trustedDevices[j].uuid)) {
-          if (device.getServiceData() == trustedDevices[j].serviceDataHex && rssi >= trustedDevices[j].rssiThreshold) {
+          int threshold = (trustedDevices[j].location == "outside") ? trustedDevices[j].rssiThresholdEntry : trustedDevices[j].rssiThresholdExit;
+          if (device.getServiceData() == trustedDevices[j].serviceDataHex && rssi >= threshold) {
             devicesDetected[devicesIndex].name = trustedDevices[j].name;
             devicesDetected[devicesIndex].rssi = rssi;
             devicesIndex++;
@@ -300,7 +302,9 @@ void sendUserListChunked() {
                 trustedDevices[i].macAddress + "," +
                 trustedDevices[i].location + "," +
                 trustedDevices[i].uuid + "," +
-                trustedDevices[i].serviceDataHex + "|";
+                trustedDevices[i].serviceDataHex + "," +
+                String(trustedDevices[i].rssiThresholdEntry) + "," +
+                String(trustedDevices[i].rssiThresholdExit) + "|";
   }
 
   Serial.println("📊 Users in fullList: " + String(trustedDevicesCount));
