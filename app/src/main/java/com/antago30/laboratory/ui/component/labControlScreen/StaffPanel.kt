@@ -43,7 +43,10 @@ fun StaffPanel(
         modifier = modifier,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
+        border = BorderStroke(
+            1.5.dp,
+            if (enabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+        ),
     ) {
         Column(
             modifier = Modifier

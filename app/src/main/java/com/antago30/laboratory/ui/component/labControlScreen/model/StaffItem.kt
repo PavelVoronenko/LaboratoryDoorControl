@@ -54,30 +54,36 @@ fun StaffItem(
     var scale by remember { mutableFloatStateOf(1f) }
     val animatedScale by animateFloatAsState(targetValue = scale, label = "scale")
 
-    val disabledContainerColor = CardBg.copy(alpha = 0.15f)
-    val disabledBorderColor = Primary.copy(alpha = 0.08f)
-
-    // Цвет обводки карточки (статичный согласно теме)
-    val cardBorderColor = if (enabled) {
-        Primary.copy(alpha = 0.1f)
+    val itemBackground = if (enabled) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Primary.copy(alpha = 0.12f),
+                Primary.copy(alpha = 0.04f)
+            )
+        )
     } else {
-        disabledBorderColor
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.Gray.copy(alpha = 0.1f),
+                Color.Gray.copy(alpha = 0.03f)
+            )
+        )
     }
 
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (enabled) {
-                CardBg.copy(alpha = 0.6f)
-            } else {
-                disabledContainerColor
-            }
+            containerColor = Color.Transparent
         ),
-        border = BorderStroke(1.dp, cardBorderColor)
+        border = BorderStroke(
+            1.5.dp,
+            if (enabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+        )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(itemBackground)
                 .clickable(
                     enabled = enabled,
                     onClick = {

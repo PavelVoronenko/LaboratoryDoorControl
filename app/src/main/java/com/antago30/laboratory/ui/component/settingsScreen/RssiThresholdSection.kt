@@ -67,16 +67,23 @@ fun RssiThresholdSection(
     initialEntry: String = "-60 дБм",
     initialExit: String = "-80 дБм",
     onThresholdsChanged: (entry: String, exit: String) -> Unit,
+    isEnabled: Boolean = true
 ) {
     val rssiValues = (-100..-30 step 5).map { "$it дБм" }
 
     var entryThreshold by remember(initialEntry) { mutableStateOf(initialEntry) }
     var exitThreshold by remember(initialExit) { mutableStateOf(initialExit) }
 
+    val sectionAlpha by animateFloatAsState(
+        targetValue = if (isEnabled) 1f else 0.5f,
+        label = "sectionAlpha"
+    )
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 4.dp)
+            .graphicsLayer { alpha = sectionAlpha },
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Column(
@@ -88,6 +95,7 @@ fun RssiThresholdSection(
                 icon = Icons.AutoMirrored.Filled.Login,
                 iconColor = Color(0xFF68D391),
                 options = rssiValues,
+                isEnabled = isEnabled,
                 onSelected = { 
                     entryThreshold = it 
                     onThresholdsChanged(it, exitThreshold)
@@ -106,6 +114,7 @@ fun RssiThresholdSection(
                 icon = Icons.AutoMirrored.Filled.Logout,
                 iconColor = Color(0xFFF56565),
                 options = rssiValues,
+                isEnabled = isEnabled,
                 onSelected = { 
                     exitThreshold = it 
                     onThresholdsChanged(entryThreshold, it)
@@ -123,6 +132,7 @@ private fun ThresholdDropdown(
     icon: ImageVector,
     iconColor: Color,
     options: List<String>,
+    isEnabled: Boolean = true,
     onSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -183,19 +193,23 @@ private fun ThresholdDropdown(
                     modifier = Modifier
                         .width(125.dp) // Увеличил ширину, чтобы "-100 дБм" точно влезало в одну строку
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Primary.copy(alpha = 0.05f))
+                        .background(
+                            if (isEnabled) Primary.copy(alpha = 0.05f) 
+                            else Color.Gray.copy(alpha = 0.05f)
+                        )
                         .border(
                             width = 1.5.dp,
-                            color = Primary.copy(alpha = 0.25f),
+                            color = if (isEnabled) Primary.copy(alpha = 0.25f) 
+                                    else Primary.copy(alpha = 0.08f),
                             shape = RoundedCornerShape(12.dp)
                         )
-                        .clickable { expanded = true }
+                        .clickable(enabled = isEnabled) { expanded = true }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
                         text = value,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Primary,
+                        color = if (isEnabled) Primary else Color.Gray.copy(alpha = 0.4f),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                         textAlign = TextAlign.Center,
@@ -208,7 +222,8 @@ private fun ThresholdDropdown(
                         else
                             Icons.Default.ArrowDropDown,
                         contentDescription = null,
-                        tint = Primary.copy(alpha = 0.8f),
+                        tint = if (isEnabled) Primary.copy(alpha = 0.8f) 
+                               else Color.Gray.copy(alpha = 0.3f),
                         modifier = Modifier.size(20.dp)
                     )
                 }

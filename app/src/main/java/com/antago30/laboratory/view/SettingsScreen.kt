@@ -244,7 +244,8 @@ fun SettingsScreen(
                             onThresholdsChanged = { entry, exit ->
                                 viewModel.updateThresholds(entry, exit)
                             },
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
                         )
                     }
                 }

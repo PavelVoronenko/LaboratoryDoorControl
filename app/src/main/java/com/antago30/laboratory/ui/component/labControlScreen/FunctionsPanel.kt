@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -31,7 +32,10 @@ fun FunctionsPanel(
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
-        border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f))
+        border = BorderStroke(
+            1.5.dp,
+            if (isConnectionEnabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -44,9 +48,9 @@ fun FunctionsPanel(
                         )
                     )
                 )
-                .padding(vertical = 16.dp)
+                .padding(vertical = 12.dp)
         ) {
-            functions.forEach { item ->
+            functions.forEachIndexed { index, item ->
                 val isToggleEnabled = if (item.requiresConnection) isConnectionEnabled else true
                 val actualChecked = item.isEnabled
 
@@ -58,6 +62,14 @@ fun FunctionsPanel(
                     },
                     enabled = isToggleEnabled
                 )
+
+                if (index < functions.size - 1) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        thickness = 0.5.dp,
+                        color = Primary.copy(alpha = 0.1f)
+                    )
+                }
             }
         }
     }
