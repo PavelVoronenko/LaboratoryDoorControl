@@ -52,6 +52,22 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/lab_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".widget.LabStyledWidgetProvider"
+            android:label="@string/widget_name"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.antago30.laboratory.action.OPEN_DOOR_STYLED" />
+                <action android:name="com.antago30.laboratory.action.TOGGLE_LIGHT_STYLED" />
+                <action android:name="com.antago30.laboratory.action.BLE_SCAN_RESULT_STYLED" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lab_widget_styled_info" />
+        </receiver>
     </application>
 
 </manifest>

@@ -9,7 +9,6 @@ import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -30,7 +29,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-class LabWidgetProvider : AppWidgetProvider() {
+class LabStyledWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
         context: Context,
@@ -58,13 +57,12 @@ class LabWidgetProvider : AppWidgetProvider() {
         val pendingResult = goAsync()
         widgetScope.launch {
             try {
-                // Пытаемся использовать активный менеджер приложения или наш внутренний
                 val appManager = BleConnectionManager.activeInstance
                 val manager = appManager ?: getInternalManager(context)
                 
                 if (manager.connectionStateFlow.value == ConnectionState.READY) {
                     executeBleCommand(context, manager, action)
-                    delay(300) // Даем время пакету уйти
+                    delay(300)
                 } else {
                     val address = SettingsRepository(context).getSelectedDeviceAddress()
                     if (address != null) {
@@ -83,12 +81,9 @@ class LabWidgetProvider : AppWidgetProvider() {
                         }
                     }
                 }
-                
-                // Запускаем таймер отключения
                 startInactivityTimer(manager)
-                
             } catch (e: Exception) {
-                Log.e("LabWidget", "Action error: ${e.message}")
+                Log.e("LabStyledWidget", "Action error: ${e.message}")
             } finally {
                 pendingResult.finish()
             }
@@ -118,7 +113,6 @@ class LabWidgetProvider : AppWidgetProvider() {
         val targetAddress = settingsRepo.getSelectedDeviceAddress()
 
         results?.forEach { result ->
-            // Проверяем, что данные пришли именно от нашего устройства
             if (targetAddress != null && !result.device.address.equals(targetAddress, ignoreCase = true)) {
                 return@forEach
             }
@@ -138,7 +132,6 @@ class LabWidgetProvider : AppWidgetProvider() {
                 val isLightOn = data[0].toInt() == 1
                 val isJdeConnected = data[1].toInt() == 1
                 
-                val settingsRepo = SettingsRepository(context)
                 val oldLightState = settingsRepo.getLightingState()
                 val oldJdeState = settingsRepo.getJdeConnectionState()
                 
@@ -158,34 +151,33 @@ class LabWidgetProvider : AppWidgetProvider() {
             val adapter = bluetoothManager.adapter
             val scanner = adapter?.bluetoothLeScanner ?: return
             
-            val intent = Intent(context, LabWidgetProvider::class.java).apply {
+            val intent = Intent(context, LabStyledWidgetProvider::class.java).apply {
                 action = ACTION_BLE_SCAN_RESULT
             }
             val pendingIntent = PendingIntent.getBroadcast(
-                context, 10, intent,
+                context, 20, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
 
-            // Используем фильтр по имени
             val filter = ScanFilter.Builder()
                 .setDeviceName("Laboratory")
                 .build()
             
             val settings = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER) // Low Power лучше для фона
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
                 .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                 .build()
 
             scanner.startScan(listOf(filter), settings, pendingIntent)
         } catch (e: Exception) {
-            Log.e("LabWidgetProvider", "Scan start failed", e)
+            Log.e("LabStyledWidget", "Scan start failed", e)
         }
     }
 
     companion object {
-        const val ACTION_OPEN_DOOR = "com.antago30.laboratory.action.OPEN_DOOR"
-        const val ACTION_TOGGLE_LIGHT = "com.antago30.laboratory.action.TOGGLE_LIGHT"
-        const val ACTION_BLE_SCAN_RESULT = "com.antago30.laboratory.action.BLE_SCAN_RESULT"
+        const val ACTION_OPEN_DOOR = "com.antago30.laboratory.action.OPEN_DOOR_STYLED"
+        const val ACTION_TOGGLE_LIGHT = "com.antago30.laboratory.action.TOGGLE_LIGHT_STYLED"
+        const val ACTION_BLE_SCAN_RESULT = "com.antago30.laboratory.action.BLE_SCAN_RESULT_STYLED"
 
         private val widgetScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         @SuppressLint("StaticFieldLeak")
@@ -204,15 +196,12 @@ class LabWidgetProvider : AppWidgetProvider() {
         private fun startInactivityTimer(manager: BleConnectionManager) {
             inactivityJob?.cancel()
             inactivityJob = widgetScope.launch {
-                delay(5000) // 5 секунд таймер разрыва соединения
-                
+                delay(5000)
                 val isAppInForeground = try {
                     ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
                 } catch (_: Exception) { false }
 
-                // Отключаем, если это внутренний менеджер ИЛИ если приложение в фоне
                 if (manager === internalManager || !isAppInForeground) {
-                    Log.d("LabWidget", "Inactivity timeout: disconnecting BLE")
                     manager.disconnect()
                     if (manager === internalManager) {
                         internalManager = null
@@ -222,55 +211,34 @@ class LabWidgetProvider : AppWidgetProvider() {
         }
 
         fun triggerUpdate(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            
-            // Обновляем основной виджет
-            val componentName = ComponentName(context, LabWidgetProvider::class.java)
-            val ids = appWidgetManager.getAppWidgetIds(componentName)
-            if (ids.isNotEmpty()) {
-                val intent = Intent(context, LabWidgetProvider::class.java).apply {
-                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-                }
-                context.sendBroadcast(intent)
-            }
-
-            // Обновляем стилизованный виджет
-            try {
-                val styledComponentName = ComponentName(context, LabStyledWidgetProvider::class.java)
-                val styledIds = appWidgetManager.getAppWidgetIds(styledComponentName)
-                if (styledIds.isNotEmpty()) {
-                    val intent = Intent(context, LabStyledWidgetProvider::class.java).apply {
-                        action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, styledIds)
-                    }
-                    context.sendBroadcast(intent)
-                }
-            } catch (_: Exception) {
-            }
+            // Централизованное обновление всех виджетов через основной провайдер
+            LabWidgetProvider.triggerUpdate(context)
         }
 
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-            val views = RemoteViews(context.packageName, R.layout.lab_widget)
+            val views = RemoteViews(context.packageName, R.layout.lab_widget_styled)
             val settingsRepo = SettingsRepository(context)
             val isLightOn = settingsRepo.getLightingState()
             val isJdeConnected = settingsRepo.getJdeConnectionState()
 
-            // Дверь всегда в нейтральном серебристом стиле
-            views.setInt(R.id.img_door, "setColorFilter", "#E0E0E0".toColorInt())
+            // В стилизованном виджете используем Primary цвет приложения для активных элементов
+            val primaryColor = "#4FC3F7".toColorInt()
+            val mutedColor = "#A0AEC0".toColorInt() // TextMuted
+            val errorColor = "#F56565".toColorInt() // Outdoor (Red)
 
-            // Лампочка меняет цвет в зависимости от состояния
+            views.setInt(R.id.img_door, "setColorFilter", primaryColor)
+
             val lightColor = when {
-                !isJdeConnected -> "#EF5350".toColorInt() // Мягкий красный
-                isLightOn -> "#E0E0E0".toColorInt()      // Нейтрально-белый
-                else -> "#757575".toColorInt()           // Глубокий серый (выключен)
+                !isJdeConnected -> errorColor
+                isLightOn -> primaryColor
+                else -> mutedColor
             }
             views.setInt(R.id.img_light, "setColorFilter", lightColor)
 
-            val openDoorIntent = Intent(context, LabWidgetProvider::class.java).apply { action = ACTION_OPEN_DOOR }
+            val openDoorIntent = Intent(context, LabStyledWidgetProvider::class.java).apply { action = ACTION_OPEN_DOOR }
             views.setOnClickPendingIntent(R.id.btn_open_door, PendingIntent.getBroadcast(context, 0, openDoorIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
-            val lightIntent = Intent(context, LabWidgetProvider::class.java).apply { action = ACTION_TOGGLE_LIGHT }
+            val lightIntent = Intent(context, LabStyledWidgetProvider::class.java).apply { action = ACTION_TOGGLE_LIGHT }
             views.setOnClickPendingIntent(R.id.btn_toggle_light, PendingIntent.getBroadcast(context, 1, lightIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

@@ -1,0 +1,55 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="120dp"
+    android:viewportWidth="240"
+    android:viewportHeight="120">
+
+    <!-- Background (CardBg #151924) -->
+    <path
+        android:fillColor="#151924"
+        android:pathData="M12,0 L228,0 A12,12 0 0 1 240,12 L240,108 A12,12 0 0 1 228,120 L12,120 A12,12 0 0 1 0,108 L0,12 A12,12 0 0 1 12,0 Z" />
+
+    <!-- Border (Primary #4FC3F7 with alpha #A0, width 4) -->
+    <path
+        android:strokeColor="#A04FC3F7"
+        android:strokeWidth="4"
+        android:pathData="M12,2 L228,2 A10,10 0 0 1 238,12 L238,108 A10,10 0 0 1 228,118 L12,118 A10,10 0 0 1 2,108 L2,12 A10,10 0 0 1 12,2 Z" />
+
+    <!-- Separator (Primary with low alpha) -->
+    <path
+        android:strokeColor="#404FC3F7"
+        android:strokeWidth="2"
+        android:pathData="M120,30 L120,90" />
+
+    <!-- Door Icon (Primary #4FC3F7) -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="4.0"
+        android:scaleY="4.0"
+        android:translateX="48"
+        android:translateY="48">
+        <path
+            android:strokeColor="#4FC3F7"
+            android:strokeWidth="1"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M19,21V5c0,-1.1 -0.9,-2 -2,-2H7C5.9,3 5,3.9 5,5v16 M17,21H7V5h10v16 M13,11h2v3h-2v-3z" />
+    </group>
+
+    <!-- Light Icon (Primary #4FC3F7) -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="4.0"
+        android:scaleY="4.0"
+        android:translateX="168"
+        android:translateY="48">
+        <path
+            android:strokeColor="#4FC3F7"
+            android:strokeWidth="1"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M12,2c-3.86,0 -7,3.14 -7,7 0,2.38 1.19,4.47 3,5.74V17c0,0.55 0.45,1 1,1h6c0.55,0 1,-0.45 1,-1v-2.26c1.81,-1.27 3,-3.36 3,-5.74 0,-3.86 -3.14,-7 -7,-7z M12,5c-2.21,0 -4,1.79 -4,4c0,1.45 0.89,2.69 2.15,3.33 M13.85,12.33C15.11,11.69 16,10.45 16,9c0,-2.21 -1.79,-4 -4,-4 M9,21h6" />
+    </group>
+</vector>
