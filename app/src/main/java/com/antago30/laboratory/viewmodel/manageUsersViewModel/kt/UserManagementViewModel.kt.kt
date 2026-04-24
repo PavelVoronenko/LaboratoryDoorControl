@@ -1,6 +1,8 @@
 package com.antago30.laboratory.viewmodel.manageUsersViewModel.kt
 
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleConnectionManager
@@ -88,6 +90,11 @@ class UserManagementViewModel(
         // Слушаем входящие данные для обновления списка
         viewModelScope.launch {
             connectionManager.characteristicData.collect { data ->
+                // Игнорируем в фоне
+                if (!ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    return@collect
+                }
+
                 val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
                 Log.d("UserManagementVM", "📥 Decoded: ${response.take(100)}...")
 

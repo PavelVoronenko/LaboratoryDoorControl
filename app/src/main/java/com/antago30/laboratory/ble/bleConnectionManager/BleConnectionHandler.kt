@@ -17,6 +17,14 @@ class BleConnectionHandler(
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): Boolean {
         return try {
+            // Закрываем предыдущее соединение, если оно было, чтобы избежать утечек
+            gatt?.let {
+                android.util.Log.d("BleConnectionHandler", "🔄 Closing existing GATT before new connection to ${device.address}")
+                it.disconnect()
+                it.close()
+            }
+            gatt = null
+
             // Используем транспорт LE и форсируем PHY 1M для стабильности и скорости
             gatt = device.connectGatt(
                 context, 

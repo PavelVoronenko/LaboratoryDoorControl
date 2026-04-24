@@ -1,5 +1,6 @@
 package com.antago30.laboratory
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -55,7 +56,8 @@ class MainActivity : ComponentActivity() {
         connectionManager = BleConnectionManager(
             context = applicationContext,
             coroutineScope = appScope,
-            settingsRepo = settingsRepo
+            settingsRepo = settingsRepo,
+            isMainInstance = true
         )
 
         // Создаём observer и сохраняем ссылку
@@ -114,8 +116,17 @@ class MainActivity : ComponentActivity() {
         super.onPause()
     }
 
+    @SuppressLint("MissingPermission")
     override fun onDestroy() {
         super.onDestroy()
+        // Явно разрываем соединение при уничтожении Activity, чтобы не оставлять "висячих" GATT
+        if (::connectionManager.isInitialized) {
+            try {
+                connectionManager.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Error disconnecting in onDestroy", e)
+            }
+        }
         appScope.cancel()
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
     }

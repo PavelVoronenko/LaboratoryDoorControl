@@ -17,9 +17,8 @@ import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionHandler
 import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionState
 import com.antago30.laboratory.ble.bleConnectionManager.BleGattCallbackHandler
 import com.antago30.laboratory.model.CharacteristicData
-import com.antago30.laboratory.model.ConnectionState
-import com.antago30.laboratory.model.CommandResult
 import com.antago30.laboratory.model.ConnectResult
+import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
@@ -29,13 +28,16 @@ import java.util.UUID
 class BleConnectionManager(
     context: Context,
     private val coroutineScope: CoroutineScope,
-    private val settingsRepo: SettingsRepository
+    private val settingsRepo: SettingsRepository,
+    isMainInstance: Boolean = false
 ) {
     private val context = context.applicationContext
 
     init {
-        // Сохраняем экземпляр для переиспользования (например, виджетом)
-        activeInstance = this
+        // Если это главный экземпляр приложения, сохраняем его для виджета
+        if (isMainInstance) {
+            activeInstance = this
+        }
     }
 
     // UUIDs
@@ -67,7 +69,6 @@ class BleConnectionManager(
 
     // Публичные API
     val connectionStateFlow: StateFlow<ConnectionState> = connectionState.state
-    val doorCommandResult: SharedFlow<CommandResult> = callbackHandler.commandResults
     val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
     val terminalData: SharedFlow<CharacteristicData> = callbackHandler.terminalUpdates
 

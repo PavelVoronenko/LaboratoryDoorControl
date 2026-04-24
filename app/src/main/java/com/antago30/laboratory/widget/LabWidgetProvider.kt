@@ -15,6 +15,8 @@ import android.content.Intent
 import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.graphics.toColorInt
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.antago30.laboratory.R
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
@@ -57,7 +59,8 @@ class LabWidgetProvider : AppWidgetProvider() {
         widgetScope.launch {
             try {
                 // Пытаемся использовать активный менеджер приложения или наш внутренний
-                val manager = BleConnectionManager.activeInstance ?: getInternalManager(context)
+                val appManager = BleConnectionManager.activeInstance
+                val manager = appManager ?: getInternalManager(context)
                 
                 if (manager.connectionStateFlow.value == ConnectionState.READY) {
                     executeBleCommand(context, manager, action)
@@ -69,17 +72,20 @@ class LabWidgetProvider : AppWidgetProvider() {
                         manager.callbackHandler.onReadyAction = { readySignal.complete(Unit) }
                         
                         val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                        manager.connect(bluetoothManager.adapter.getRemoteDevice(address))
-                        
-                        if (withTimeoutOrNull(2500) { readySignal.await() } != null) {
-                            executeBleCommand(context, manager, action)
-                            delay(300)
+                        val adapter = bluetoothManager.adapter
+                        if (adapter != null && adapter.isEnabled) {
+                            manager.connect(adapter.getRemoteDevice(address))
+                            
+                            if (withTimeoutOrNull(2500) { readySignal.await() } != null) {
+                                executeBleCommand(context, manager, action)
+                                delay(300)
+                            }
                         }
                     }
                 }
                 
-                // Запускаем таймер отключения для нашего внутреннего менеджера
-                startInactivityTimer()
+                // Запускаем таймер отключения
+                startInactivityTimer(manager)
                 
             } catch (e: Exception) {
                 Log.e("LabWidget", "Action error: ${e.message}")
@@ -108,7 +114,15 @@ class LabWidgetProvider : AppWidgetProvider() {
         val results: ArrayList<ScanResult>? =
             intent.getParcelableArrayListExtra(BluetoothLeScanner.EXTRA_LIST_SCAN_RESULT, ScanResult::class.java)
 
+        val settingsRepo = SettingsRepository(context)
+        val targetAddress = settingsRepo.getSelectedDeviceAddress()
+
         results?.forEach { result ->
+            // Проверяем, что данные пришли именно от нашего устройства
+            if (targetAddress != null && !result.device.address.equals(targetAddress, ignoreCase = true)) {
+                return@forEach
+            }
+
             val scanRecord = result.scanRecord ?: return@forEach
             val serviceDataMap = scanRecord.serviceData
             
@@ -152,11 +166,14 @@ class LabWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
             )
 
-            val filter = ScanFilter.Builder().setDeviceName("Laboratory").build()
+            // Используем фильтр по имени
+            val filter = ScanFilter.Builder()
+                .setDeviceName("Laboratory")
+                .build()
+            
             val settings = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER) // Low Power лучше для фона
                 .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
-                .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
                 .build()
 
             scanner.startScan(listOf(filter), settings, pendingIntent)
@@ -184,12 +201,23 @@ class LabWidgetProvider : AppWidgetProvider() {
         }
 
         @Suppress("MissingPermission")
-        private fun startInactivityTimer() {
+        private fun startInactivityTimer(manager: BleConnectionManager) {
             inactivityJob?.cancel()
             inactivityJob = widgetScope.launch {
-                delay(15000)
-                internalManager?.disconnect()
-                internalManager = null
+                delay(5000) // 5 секунд таймер разрыва соединения
+                
+                val isAppInForeground = try {
+                    ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+                } catch (e: Exception) { false }
+
+                // Отключаем, если это внутренний менеджер ИЛИ если приложение в фоне
+                if (manager === internalManager || !isAppInForeground) {
+                    Log.d("LabWidget", "Inactivity timeout: disconnecting BLE")
+                    manager.disconnect()
+                    if (manager === internalManager) {
+                        internalManager = null
+                    }
+                }
             }
         }
 
@@ -216,8 +244,6 @@ class LabWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.img_door, "setColorFilter", "#E0E0E0".toColorInt())
 
             // Лампочка меняет цвет в зависимости от состояния
-            // Мы используем setColorFilter только для обычного состояния. 
-            // При нажатии система сама подменит иконку на черную из XML.
             val lightColor = when {
                 !isJdeConnected -> "#EF5350".toColorInt() // Мягкий красный
                 isLightOn -> "#E0E0E0".toColorInt()      // Нейтрально-белый

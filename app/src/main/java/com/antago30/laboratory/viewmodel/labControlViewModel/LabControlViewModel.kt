@@ -2,6 +2,8 @@ package com.antago30.laboratory.viewmodel.labControlViewModel
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.antago30.laboratory.ble.BleConnectionManager
@@ -63,7 +65,10 @@ class LabControlViewModel(
         @Suppress("MissingPermission")
         viewModelScope.launch {
             connectionManager.connectionStateFlow.collect { state ->
-                if (state == ConnectionState.READY) {
+                // Проверяем, находится ли приложение в фокусе
+                val isAppVisible = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
+                if (state == ConnectionState.READY && isAppVisible) {
                     connectionManager.requestMtu(512)
                     connectionManager.subscribeToSensorData()
 
@@ -87,6 +92,11 @@ class LabControlViewModel(
 
         viewModelScope.launch {
             connectionManager.characteristicData.collect { data ->
+                // Если приложение в фоне, игнорируем данные
+                if (!ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    return@collect
+                }
+
                 val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
                 Log.d("LabControlVM", "📥 Received: '$response' (UUID: ${data.uuid})")
 
@@ -102,6 +112,11 @@ class LabControlViewModel(
         // Обработка Terminal characteristic (логи от контроллера)
         viewModelScope.launch {
             connectionManager.terminalData.collect { data ->
+                // Если приложение в фоне, игнорируем логи
+                if (!ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    return@collect
+                }
+
                 val response = try {
                     String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
                 } catch (e: Exception) { "" }

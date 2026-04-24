@@ -25,9 +25,11 @@ DevicesDetected devicesDetected[10];
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     pServer->startAdvertising();
+    log("Клиент подключён", LOG_INFO);
   }
   void onDisconnect(BLEServer* pServer) {
     pServer->startAdvertising();
+    log("Клиент отключён", LOG_INFO);
   }
 };
 
@@ -108,7 +110,7 @@ void updateAdvertising() {
 
   // Основной пакет: только имя и флаги (чтобы точно влезло в 31 байт)
   BLEAdvertisementData advData;
-  advData.setName("Laboratory");
+  advData.setName("DEV Laboratory");
   advData.setFlags(0x06);
   pAdvertising->setAdvertisementData(advData);
 
