@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -87,41 +88,31 @@ fun TerminalLogPanel(
 
     var isAutoScrollEnabled by rememberSaveable { mutableStateOf(true) }
 
-    val seenIds = remember { mutableSetOf<String>() }
-    
-    // При первой загрузке (когда приходит пачка из 500 логов) 
-    // помечаем их все как "уже виденные", чтобы не анимировать
-    LaunchedEffect(logs.isNotEmpty()) {
-        if (seenIds.isEmpty() && logs.isNotEmpty()) {
-            logs.forEach { seenIds.add(it.id) }
-        }
-    }
-
     val isDragged by listState.interactionSource.collectIsDraggedAsState()
 
     val isAtBottom by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 100
+            // В reverseLayout = true индекс 0 — это низ списка.
+            // Если мы видим индекс 0 с минимальным оффсетом, значит мы в самом низу.
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 50
         }
     }
 
+    // Управление состоянием автоскролла
     LaunchedEffect(isAtBottom, isDragged) {
-        if (isAtBottom && !isDragged) {
+        if (isAtBottom) {
             isAutoScrollEnabled = true
-        } else if (isDragged && !isAtBottom) {
+        } else if (isDragged) {
             isAutoScrollEnabled = false
         }
     }
 
-    // Плавный автоскролл при появлении нового лога (в начале списка)
-    LaunchedEffect(logs.firstOrNull()?.id) {
+    // Автоскролл к самому свежему логу (индекс 0 в reverseLayout)
+    LaunchedEffect(logs.firstOrNull()?.id, isAutoScrollEnabled) {
         if (isAutoScrollEnabled && logs.isNotEmpty()) {
-            listState.animateScrollToItem(0)
-        }
-    }
-
-    LaunchedEffect(isAutoScrollEnabled) {
-        if (isAutoScrollEnabled && logs.isNotEmpty()) {
+            // Небольшая задержка гарантирует, что LazyColumn уже знает о новом элементе 
+            // и его размерах перед началом анимации скролла.
+            delay(100)
             listState.animateScrollToItem(0)
         }
     }
@@ -268,32 +259,7 @@ fun TerminalLogPanel(
                                 items = logs,
                                 key = { it.id }
                             ) { entry ->
-                                // Если лог уже был в списке (история), рендерим его без анимации
-                                val isNew = remember(entry.id) { !seenIds.contains(entry.id) }
-                                
-                                if (isNew) {
-                                    val visibleState = remember(entry.id) {
-                                        MutableTransitionState(false).apply {
-                                            targetState = true
-                                        }
-                                    }
-                                    
-                                    LaunchedEffect(entry.id) {
-                                        seenIds.add(entry.id)
-                                    }
-
-                                    this@Column.AnimatedVisibility(
-                                        visibleState = visibleState,
-                                        enter = expandVertically(
-                                            animationSpec = spring(stiffness = Spring.StiffnessLow),
-                                            expandFrom = Alignment.Bottom
-                                        ) + fadeIn(tween(400)),
-                                        modifier = Modifier.animateItem()
-                                    ) {
-                                        TerminalLogRow(entry)
-                                    }
-                                } else {
-                                    // Исторический лог без анимаций и тяжелых оберток
+                                Box(modifier = Modifier.animateItem()) {
                                     TerminalLogRow(entry)
                                 }
                             }
