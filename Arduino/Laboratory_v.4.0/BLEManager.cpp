@@ -25,11 +25,11 @@ DevicesDetected devicesDetected[10];
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     pServer->startAdvertising();
-    log("Клиент подключён", LOG_INFO);
+    //log("Клиент подключён", LOG_INFO);
   }
   void onDisconnect(BLEServer* pServer) {
     pServer->startAdvertising();
-    log("Клиент отключён", LOG_INFO);
+    //log("Клиент отключён", LOG_INFO);
   }
 };
 
