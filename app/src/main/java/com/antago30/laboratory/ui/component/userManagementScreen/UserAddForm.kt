@@ -191,7 +191,7 @@ fun UserAddForm(
                     .fillMaxWidth()
                     .height(64.dp)
                     .scale(animatedScale)
-                    .clip(RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .clickable(
                         enabled = isEnabled,
                         interactionSource = remember { MutableInteractionSource() },
@@ -218,7 +218,7 @@ fun UserAddForm(
                             }
                         }
                     ),
-                shape = RoundedCornerShape(28.dp),
+                shape = RoundedCornerShape(24.dp),
                 color = Color.Transparent,
                 border = BorderStroke(1.5.dp, borderColor)
             ) {
@@ -279,7 +279,7 @@ private fun SimpleReadOnlyField(
             }
         },
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent,
@@ -346,7 +346,7 @@ private fun SimpleTextField(
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = if (enabled) Primary.copy(alpha = 0.5f) else Color.Transparent,
             unfocusedBorderColor = if (enabled) Primary.copy(alpha = 0.2f) else Color(0xFF374151),

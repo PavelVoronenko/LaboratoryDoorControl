@@ -28,13 +28,13 @@ fun FunctionsPanel(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
         border = BorderStroke(
             1.5.dp,
-            if (isConnectionEnabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+            if (isConnectionEnabled) Primary.copy(alpha = 0.15f) else Primary.copy(alpha = 0.05f)
         )
     ) {
         Column(

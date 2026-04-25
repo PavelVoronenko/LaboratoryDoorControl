@@ -122,11 +122,11 @@ fun TerminalLogPanel(
             .fillMaxWidth()
             .height(screenHeight * 0.5f)
             .graphicsLayer { alpha = panelAlpha },
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = androidx.compose.foundation.BorderStroke(
             1.5.dp,
-            if (isEnabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+            if (isEnabled) Primary.copy(alpha = 0.15f) else Primary.copy(alpha = 0.05f)
         ),
     ) {
         Column(

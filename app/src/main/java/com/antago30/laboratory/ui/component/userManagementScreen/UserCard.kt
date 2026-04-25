@@ -65,7 +65,7 @@ fun UserCard(
         modifier = modifier
             .fillMaxWidth()
             .scale(animatedScale),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = BorderStroke(
             1.dp,
@@ -153,28 +153,11 @@ fun UserCard(
                 }
             }
 
-            // ПРАВАЯ ЧАСТЬ: галочка или удаление
+            // ПРАВАЯ ЧАСТЬ: удаление
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (isSelected) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
                 Box(
                     modifier = Modifier
                         .size(40.dp)

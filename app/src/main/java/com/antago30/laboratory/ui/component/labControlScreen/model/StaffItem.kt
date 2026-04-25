@@ -57,27 +57,27 @@ fun StaffItem(
     val itemBackground = if (enabled) {
         Brush.verticalGradient(
             colors = listOf(
-                Primary.copy(alpha = 0.12f),
-                Primary.copy(alpha = 0.04f)
+                CardBg.copy(alpha = 0.7f),
+                CardBg.copy(alpha = 0.35f)
             )
         )
     } else {
         Brush.verticalGradient(
             colors = listOf(
-                Color.Gray.copy(alpha = 0.1f),
-                Color.Gray.copy(alpha = 0.03f)
+                CardBg.copy(alpha = 0.35f),
+                CardBg.copy(alpha = 0.15f)
             )
         )
     }
 
     Card(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
         border = BorderStroke(
             1.5.dp,
-            if (enabled) Primary.copy(alpha = 0.25f) else Primary.copy(alpha = 0.08f)
+            if (enabled) Primary.copy(alpha = 0.15f) else Primary.copy(alpha = 0.05f)
         )
     ) {
         Row(
