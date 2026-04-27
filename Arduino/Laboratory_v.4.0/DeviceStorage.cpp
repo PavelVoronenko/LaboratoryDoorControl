@@ -6,6 +6,8 @@ Preferences usersPrefs;
 TrustedDevice trustedDevices[MAX_USERS];
 int trustedDevicesCount = 0;
 int currentDistanceThreshold = DISTANCE_THRESHOLD;
+int currentDoorOpenTime = 3000;
+int currentDoorCooldown = 7000;
 
 // ------------------ Инициализация хранилища ------------------
 void initStorage() {
@@ -134,4 +136,26 @@ int loadDistanceThreshold() {
   currentDistanceThreshold = usersPrefs.getInt("dist_threshold", DISTANCE_THRESHOLD);
   Serial.printf("Загружен порог расстояния: %d см (дефолт: %d)\n", currentDistanceThreshold, DISTANCE_THRESHOLD);
   return currentDistanceThreshold;
+}
+
+// ------------------ Управление параметрами двери ------------------
+void saveDoorParams(int openTime, int cooldown) {
+  if (openTime > 0) {
+    currentDoorOpenTime = openTime;
+    usersPrefs.putInt("door_open_time", openTime);
+  }
+  if (cooldown > 0) {
+    currentDoorCooldown = cooldown;
+    usersPrefs.putInt("door_cooldown", cooldown);
+  }
+}
+
+int loadDoorOpenTime() {
+  currentDoorOpenTime = usersPrefs.getInt("door_open_time", 3000);
+  return currentDoorOpenTime;
+}
+
+int loadDoorCooldown() {
+  currentDoorCooldown = usersPrefs.getInt("door_cooldown", 7000);
+  return currentDoorCooldown;
 }

@@ -23,6 +23,10 @@ void setup() {
   // Загрузка порога расстояния
   loadDistanceThreshold();
 
+  // Загрузка параметров двери
+  loadDoorOpenTime();
+  loadDoorCooldown();
+
   // Загрузка пользователей из памяти
   trustedDevicesCount = loadTrustedDevices(trustedDevices, MAX_USERS);
   Serial.printf("Загружено %d доверенных устройств из NVS\n", trustedDevicesCount);
@@ -75,7 +79,7 @@ void Task1code(void * pvParameters) {
     // Отправка отладочных данных (раз в 500мс)
     if (millis() - lastDebugTime > 500) {
       lastDebugTime = millis();
-      sendDebugData(lastMeasuredDistance, currentDistanceThreshold);
+      sendDebugData(lastMeasuredDistance, currentDistanceThreshold, currentDoorOpenTime, currentDoorCooldown);
     }
 
     // Попытка восстановить соединение с JDY-33
@@ -112,10 +116,10 @@ void Task2code(void * pvParameters) {
       openDoor(10, "PIR SENSOR");
     }
 
-    // Обнуление процесса входа/выхода (таймаут 20 секунд)
+    // Обнуление процесса входа/выхода (таймаут 10 секунд)
     for (int i = 0; i < trustedDevicesCount; i++) {
       if (trustedDevices[i].entryInProgress || trustedDevices[i].exitInProgress) {
-        if (millis() - trustedDevices[i].processStartTime > 20000) {
+        if (millis() - trustedDevices[i].processStartTime > 10000) {
           trustedDevices[i].entryInProgress = false;
           trustedDevices[i].exitInProgress = false;
           log(trustedDevices[i].name + " таймаут перехода", LOG_WARN);

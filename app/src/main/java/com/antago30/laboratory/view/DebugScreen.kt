@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material3.*
@@ -30,8 +31,13 @@ fun DebugScreen(
     connectionManager: com.antago30.laboratory.ble.BleConnectionManager
 ) {
     var distanceText by remember { mutableStateOf("") }
+    var doorTimeText by remember { mutableStateOf("") }
+    var doorCooldownText by remember { mutableStateOf("") }
+
     val realDistance by viewModel.debugDistance.collectAsState()
     val currentThreshold by viewModel.debugThreshold.collectAsState()
+    val currentDoorTime by viewModel.debugDoorTime.collectAsState()
+    val currentDoorCooldown by viewModel.debugDoorCooldown.collectAsState()
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
     
     val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
@@ -65,7 +71,8 @@ fun DebugScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -78,7 +85,7 @@ fun DebugScreen(
                 )) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         // Header
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -149,6 +156,110 @@ fun DebugScreen(
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 Text("ОК", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Door Control Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                border = BorderStroke(1.5.dp, Primary.copy(alpha = 0.2f))
+            ) {
+                Box(modifier = Modifier.background(
+                    Brush.verticalGradient(listOf(Primary.copy(alpha = 0.08f), Primary.copy(alpha = 0.02f)))
+                )) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Header
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LockOpen, null, tint = Primary, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Door", fontWeight = FontWeight.Bold, color = Primary, fontSize = 18.sp)
+                        }
+
+                        // Current Values
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            InfoBox(
+                                label = "Open Time",
+                                value = "%.1f".format(currentDoorTime / 1000f),
+                                unit = "s",
+                                color = Primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            InfoBox(
+                                label = "Cooldown",
+                                value = "%.1f".format(currentDoorCooldown / 1000f),
+                                unit = "s",
+                                color = Primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // Inputs
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedTextField(
+                                    value = doorTimeText,
+                                    onValueChange = { 
+                                        if (it.length <= 5) {
+                                            val filtered = it.replace(',', '.')
+                                            if (filtered.count { char -> char == '.' } <= 1) {
+                                                doorTimeText = filtered.filter { char -> char.isDigit() || char == '.' }
+                                            }
+                                        }
+                                    },
+                                    placeholder = { Text("Open (s)") },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Primary,
+                                        unfocusedBorderColor = Primary.copy(alpha = 0.2f)
+                                    )
+                                )
+                                OutlinedTextField(
+                                    value = doorCooldownText,
+                                    onValueChange = { 
+                                        if (it.length <= 5) {
+                                            val filtered = it.replace(',', '.')
+                                            if (filtered.count { char -> char == '.' } <= 1) {
+                                                doorCooldownText = filtered.filter { char -> char.isDigit() || char == '.' }
+                                            }
+                                        }
+                                    },
+                                    placeholder = { Text("Pause (s)") },
+                                    modifier = Modifier.weight(1f).height(56.dp),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    shape = RoundedCornerShape(12.dp),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Primary,
+                                        unfocusedBorderColor = Primary.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    val time = doorTimeText.toFloatOrNull()?.let { (it * 1000).toInt() } ?: currentDoorTime
+                                    val cooldown = doorCooldownText.toFloatOrNull()?.let { (it * 1000).toInt() } ?: currentDoorCooldown
+                                    viewModel.sendDoorParams(time, cooldown)
+                                    doorTimeText = ""
+                                    doorCooldownText = ""
+                                    keyboardController?.hide()
+                                },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                enabled = doorTimeText.isNotBlank() || doorCooldownText.isNotBlank(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Update Door Params", fontWeight = FontWeight.Bold)
                             }
                         }
                     }

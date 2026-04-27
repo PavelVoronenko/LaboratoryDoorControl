@@ -98,7 +98,7 @@ void checkEntryExitStatus() {
     for (int j = 0; j < trustedDevicesCount; j++) {
       // Человек подходит снаружи: он outside и его BLE недавно видели (увеличим до 15 сек)
       if (trustedDevices[j].location == "outside" && (now - trustedDevices[j].userTime < 15000)) {
-        if (!trustedDevices[j].entryInProgress && (now - trustedDevices[j].lastTransitionTime > 7000)) {
+        if (!trustedDevices[j].entryInProgress && (now - trustedDevices[j].lastTransitionTime > (unsigned long)currentDoorCooldown)) {
           if (isWithinThreshold) {
             trustedDevices[j].entryInProgress = true;
             trustedDevices[j].processStartTime = now;
@@ -136,7 +136,7 @@ void checkEntryExitStatus() {
       // Человек подходит изнутри: он inside и его BLE недавно видели (увеличим до 15 сек)
       if (trustedDevices[j].location == "inside" && (now - trustedDevices[j].userTime < 15000)) {
         // Проверяем "кулдаун" после последнего перехода
-        if (!trustedDevices[j].exitInProgress && (now - trustedDevices[j].lastTransitionTime > 7000)) {
+        if (!trustedDevices[j].exitInProgress && (now - trustedDevices[j].lastTransitionTime > (unsigned long)currentDoorCooldown)) {
           trustedDevices[j].exitInProgress = true;
           trustedDevices[j].processStartTime = now;
           trustedDevices[j].entryInProgress = false;

@@ -68,6 +68,12 @@ class SettingsScreenViewModel(
     private val _debugThreshold = MutableStateFlow(0)
     val debugThreshold: StateFlow<Int> = _debugThreshold.asStateFlow()
 
+    private val _debugDoorTime = MutableStateFlow(0)
+    val debugDoorTime: StateFlow<Int> = _debugDoorTime.asStateFlow()
+
+    private val _debugDoorCooldown = MutableStateFlow(0)
+    val debugDoorCooldown: StateFlow<Int> = _debugDoorCooldown.asStateFlow()
+
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListTotalChunks = 0
@@ -362,6 +368,10 @@ class SettingsScreenViewModel(
                             _debugDistance.value = part.substring(5).toFloatOrNull() ?: 0f
                         } else if (part.startsWith("THRESH:")) {
                             _debugThreshold.value = part.substring(7).toIntOrNull() ?: 0
+                        } else if (part.startsWith("DTIME:")) {
+                            _debugDoorTime.value = part.substring(6).toIntOrNull() ?: 0
+                        } else if (part.startsWith("DPAUSE:")) {
+                            _debugDoorCooldown.value = part.substring(7).toIntOrNull() ?: 0
                         }
                     }
                 } catch (e: Exception) {
@@ -391,6 +401,13 @@ class SettingsScreenViewModel(
     fun sendDistanceThreshold(distance: Int) {
         viewModelScope.launch {
             connectionManager.sendCommand("SETDIST:$distance")
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun sendDoorParams(timeMs: Int, cooldownMs: Int) {
+        viewModelScope.launch {
+            connectionManager.sendCommand("SETDOOR:$timeMs|$cooldownMs")
         }
     }
 

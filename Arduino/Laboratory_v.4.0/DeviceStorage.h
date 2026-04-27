@@ -59,10 +59,17 @@ bool getManualRebootFlag();
 void saveDistanceThreshold(int threshold);
 int loadDistanceThreshold();
 
+// ------------------ Управление параметрами двери ------------------
+void saveDoorParams(int openTime, int cooldown);
+int loadDoorOpenTime();
+int loadDoorCooldown();
+
 // Глобальные переменные
 extern Preferences usersPrefs;
 extern TrustedDevice trustedDevices[];
 extern int trustedDevicesCount;
 extern int currentDistanceThreshold;
+extern int currentDoorOpenTime;
+extern int currentDoorCooldown;
 
 #endif // DEVICE_STORAGE_H

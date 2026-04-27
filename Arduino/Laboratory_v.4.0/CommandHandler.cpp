@@ -190,6 +190,18 @@ void commandHandler() {
       }
     }
 
+    // SETDOOR:time|cooldown
+    if (cmd.startsWith("SETDOOR:")) {
+      String params = cmd.substring(8);
+      int pipeIndex = params.indexOf('|');
+      if (pipeIndex != -1) {
+        int doorTime = params.substring(0, pipeIndex).toInt();
+        int doorCooldown = params.substring(pipeIndex + 1).toInt();
+        saveDoorParams(doorTime, doorCooldown);
+        log("Параметры двери: " + String(doorTime) + "мс / " + String(doorCooldown) + "мс", LOG_INFO);
+      }
+    }
+
     // DELUSER:id
     if (cmd.startsWith("DELUSER:")) {
       int id = cmd.substring(8).toInt();

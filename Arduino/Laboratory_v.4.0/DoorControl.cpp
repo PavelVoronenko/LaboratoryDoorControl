@@ -33,10 +33,11 @@ void openDoor(int pause, String source) {
 
 void closedDoor() {
   if (digitalRead(OPENING_PIN) == HIGH) {
-    if (millis() - doorOpenTimestamp > 3000) {
+    if (millis() - doorOpenTimestamp > (unsigned long)currentDoorOpenTime) {
       ledcDetach(SPEAKER_PIN);
       digitalWrite(SPEAKER_PIN, LOW);
       digitalWrite(OPENING_PIN, LOW);
+      Serial.println("[D] Дверь закрыта");
 
       // Проиграть сигнал если все на улице
       if (allUsersOutside()) {

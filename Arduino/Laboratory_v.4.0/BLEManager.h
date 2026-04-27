@@ -56,7 +56,7 @@ void log(String message, LogType type = LOG_INFO);
 
 // ------------------ Отправка служебных данных ------------------
 void sendCommand();
-void sendDebugData(float distance, int threshold);
+void sendDebugData(float distance, int threshold, int doorTime, int doorCooldown);
 
 // ------------------ Отправка списка пользователей ------------------
 void sendUserListChunked();
