@@ -8,8 +8,12 @@
 #include <BLE2902.h>
 #include <BLEScan.h>
 #include <BLEClient.h>
+#include <RTClib.h>
 #include "Pins.h"
 #include "DeviceStorage.h"
+
+// ------------------ Глобальные переменные RTC ------------------
+extern RTC_DS3231 rtc;
 
 // ------------------ Структура обнаруженных устройств ------------------
 struct DevicesDetected {

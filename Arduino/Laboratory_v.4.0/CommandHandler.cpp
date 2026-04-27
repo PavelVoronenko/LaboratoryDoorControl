@@ -268,6 +268,25 @@ void commandHandler() {
       ESP.restart();
     }
 
+    // SETTIME:YYYY|MM|DD|HH|MM|SS
+    if (cmd.startsWith("SETTIME:")) {
+      String params = cmd.substring(8);
+      int p[6];
+      int count = 0;
+      int start = 0;
+      for (int i = 0; i < params.length() && count < 6; i++) {
+        if (params[i] == '|') {
+          p[count++] = params.substring(start, i).toInt();
+          start = i + 1;
+        }
+      }
+      if (count == 5) {
+        p[5] = params.substring(start).toInt();
+        rtc.adjust(DateTime(p[0], p[1], p[2], p[3], p[4], p[5]));
+        log("Время синхронизировано", LOG_INFO);
+      }
+    }
+
     rxValue = "";
   }
 }

@@ -2,6 +2,7 @@
 #include <Arduino.h>
 
 // ------------------ Глобальные переменные BLE ------------------
+RTC_DS3231 rtc;
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 BLECharacteristic* Terminal = NULL;
@@ -41,6 +42,14 @@ class CharacteristicCallBack : public BLECharacteristicCallbacks {
 };
 
 //-----------------BLE терминал -----------------------------
+String getRussianDate(DateTime dt) {
+    const char* months[] = {
+        "января", "февраля", "марта", "апреля", "мая", "июня",
+        "июля", "августа", "сентября", "октября", "ноября", "декабря"
+    };
+    return String(dt.day()) + " " + months[dt.month() - 1] + " " + String(dt.year()) + " г.";
+}
+
 void addToLogHistory(String message) {
   logHistory[logHead] = message;
   logHead = (logHead + 1) % MAX_LOG_HISTORY;
@@ -48,12 +57,29 @@ void addToLogHistory(String message) {
 }
 
 void log(String message, LogType type) {
+  DateTime now = rtc.now();
+  static int lastDay = -1;
+
+  // Проверка смены дня для заголовка
+  if (lastDay != now.day()) {
+    lastDay = now.day();
+    String dateHeader = "--- " + getRussianDate(now) + " ---";
+    Terminal->setValue((uint8_t*)dateHeader.c_str(), dateHeader.length());
+    Terminal->notify();
+    addToLogHistory(dateHeader);
+    Serial.println(dateHeader);
+  }
+
+  String timeStr = "[" + (now.hour() < 10 ? String("0") : String("")) + String(now.hour()) + ":" +
+                   (now.minute() < 10 ? String("0") : String("")) + String(now.minute()) + ":" +
+                   (now.second() < 10 ? String("0") : String("")) + String(now.second()) + "] ";
+
   String prefix = "[I] ";
   if (type == LOG_DOOR) prefix = "[D] ";
   else if (type == LOG_USER) prefix = "[U] ";
   else if (type == LOG_WARN) prefix = "[W] ";
 
-  String fullMessage = prefix + message;
+  String fullMessage = timeStr + prefix + message;
 
   Terminal->setValue((uint8_t*)fullMessage.c_str(), fullMessage.length());
   Terminal->notify();

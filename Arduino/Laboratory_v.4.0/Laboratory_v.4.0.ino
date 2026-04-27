@@ -20,6 +20,15 @@ void setup() {
   // Инициализация NVS
   initStorage();
 
+  // Инициализация RTC DS3231
+  if (!rtc.begin()) {
+    Serial.println("Не удалось найти RTC");
+  }
+  if (rtc.lostPower()) {
+    Serial.println("RTC потерял питание, установите время!");
+    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Установка времени компиляции
+  }
+
   // Загрузка порога расстояния
   loadDistanceThreshold();
 
