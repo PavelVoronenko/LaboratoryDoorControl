@@ -10,6 +10,9 @@
 TaskHandle_t Task1;
 TaskHandle_t Task2;
 
+// ------------------ Глобальные переменные ------------------
+bool batteryWarning = false;
+
 // ------------------ Setup ------------------
 void setup() {
   Serial.begin(115200);
@@ -26,6 +29,7 @@ void setup() {
   }
   if (rtc.lostPower()) {
     Serial.println("RTC потерял питание, установите время!");
+    batteryWarning = true;
     // rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Установка времени компиляции
   }
 

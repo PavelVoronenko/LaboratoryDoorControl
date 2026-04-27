@@ -283,6 +283,7 @@ void commandHandler() {
       if (count == 5) {
         p[5] = params.substring(start).toInt();
         rtc.adjust(DateTime(p[0], p[1], p[2], p[3], p[4], p[5]));
+        batteryWarning = false; // Сбрасываем предупреждение после синхронизации
         log("Время синхронизировано", LOG_INFO);
       }
     }

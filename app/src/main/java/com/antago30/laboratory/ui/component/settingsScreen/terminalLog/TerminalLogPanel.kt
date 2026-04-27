@@ -319,30 +319,47 @@ fun TerminalLogPanel(
 
 @Composable
 private fun TerminalLogRow(entry: TerminalLogEntry) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 1.dp)
-    ) {
-        Text(
-            text = entry.getFormattedTime(),
-            color = entry.getTimeColor(),
-            fontSize = 14.sp,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            softWrap = false
-        )
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        Text(
-            text = entry.message,
-            color = entry.getMessageColor(),
-            fontSize = 15.sp,
-            fontFamily = FontFamily.Monospace,
-            lineHeight = 17.sp,
-            modifier = Modifier.weight(1f)
-        )
+    if (entry.type == LogType.DATE_HEADER) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = entry.message,
+                color = Color.Gray.copy(alpha = 0.6f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 1.dp)
+        ) {
+            Text(
+                text = entry.getFormattedTime(),
+                color = entry.getTimeColor(),
+                fontSize = 14.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = entry.message,
+                color = entry.getMessageColor(),
+                fontSize = 15.sp,
+                fontFamily = FontFamily.Monospace,
+                lineHeight = 17.sp,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }

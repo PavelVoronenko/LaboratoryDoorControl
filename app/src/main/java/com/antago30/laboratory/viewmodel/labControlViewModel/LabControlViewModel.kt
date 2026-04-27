@@ -34,6 +34,10 @@ class LabControlViewModel(
     private val settingsRepo: SettingsRepository
 ) : ViewModel() {
 
+    companion object {
+        private var hasDismissedBatteryWarning = false
+    }
+
     // === UI State ===
     val isInterfaceEnabled: StateFlow<Boolean> = connectionManager.connectionStateFlow
         .map { it == ConnectionState.READY }
@@ -49,6 +53,9 @@ class LabControlViewModel(
     // Flow для показа toast уведомления от контроллера
     private val _controllerToastMessage = MutableStateFlow<String?>(null)
     val controllerToastMessage: StateFlow<String?> = _controllerToastMessage
+
+    private val _showBatteryWarning = MutableStateFlow(false)
+    val showBatteryWarning: StateFlow<Boolean> = _showBatteryWarning
 
     // === Буфер для сборки USERLIST чанков ===
     private val userListChunks = mutableMapOf<Int, String>()
@@ -71,6 +78,7 @@ class LabControlViewModel(
                 if (state == ConnectionState.READY && isAppVisible) {
                     connectionManager.requestMtu(512)
                     connectionManager.subscribeToSensorData()
+                    connectionManager.subscribeToDebugData() // Подписываемся на отладку для проверки батарейки
 
                     // Небольшая задержка для завершения инициализации GATT
                     delay(50)
@@ -119,7 +127,7 @@ class LabControlViewModel(
 
                 val response = try {
                     String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
-                } catch (e: Exception) { "" }
+                } catch (_: Exception) { "" }
 
                 // Игнорируем историю логов и пустые сообщения
                 if (response.isEmpty() || response.startsWith("LOG_HIST:")) return@collect
@@ -132,6 +140,21 @@ class LabControlViewModel(
                     // Очищаем сообщение от технических префиксов [W], [I], [D]
                     val cleanMessage = response.replace(Regex("^\\[[A-Z]]\\s*"), "")
                     _controllerToastMessage.value = cleanMessage
+                }
+            }
+        }
+
+        // Обработка Debug characteristic (для проверки батарейки)
+        viewModelScope.launch {
+            connectionManager.debugData.collect { data ->
+                val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
+                if (response.contains("BAT:0")) {
+                    if (!hasDismissedBatteryWarning) {
+                        _showBatteryWarning.value = true
+                    }
+                } else if (response.contains("BAT:1")) {
+                    _showBatteryWarning.value = false
+                    hasDismissedBatteryWarning = false // Сбрасываем флаг, если батарейка теперь в норме
                 }
             }
         }
@@ -343,5 +366,10 @@ class LabControlViewModel(
 
     fun clearControllerToastMessage() {
         _controllerToastMessage.value = null
+    }
+
+    fun dismissBatteryWarning() {
+        _showBatteryWarning.value = false
+        hasDismissedBatteryWarning = true
     }
 }

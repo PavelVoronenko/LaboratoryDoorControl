@@ -9,7 +9,8 @@ enum class LogType {
     INFO,    // Система / JDY-33
     DOOR,    // Открытие/закрытие двери
     USER,    // Действия пользователей
-    WARNING  // Предупреждения
+    WARNING, // Предупреждения
+    DATE_HEADER // Заголовок даты
 }
 
 data class TerminalLogEntry(

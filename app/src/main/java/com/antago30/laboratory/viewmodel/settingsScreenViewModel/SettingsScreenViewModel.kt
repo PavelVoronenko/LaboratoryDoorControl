@@ -74,6 +74,15 @@ class SettingsScreenViewModel(
     private val _debugDoorCooldown = MutableStateFlow(0)
     val debugDoorCooldown: StateFlow<Int> = _debugDoorCooldown.asStateFlow()
 
+    private val _debugRtcTime = MutableStateFlow("--:--:--")
+    val debugRtcTime: StateFlow<String> = _debugRtcTime.asStateFlow()
+
+    private val _debugTemperature = MutableStateFlow(0f)
+    val debugTemperature: StateFlow<Float> = _debugTemperature.asStateFlow()
+
+    private val _isBatteryOk = MutableStateFlow(true)
+    val isBatteryOk: StateFlow<Boolean> = _isBatteryOk.asStateFlow()
+
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListTotalChunks = 0
@@ -228,10 +237,11 @@ class SettingsScreenViewModel(
             LocalTime.now()
         }
 
-        val type = when (typeChar) {
-            "D" -> LogType.DOOR
-            "W" -> LogType.WARNING
-            "U" -> LogType.USER
+        val type = when {
+            raw.trim().startsWith("---") && raw.trim().endsWith("---") -> LogType.DATE_HEADER
+            typeChar == "D" -> LogType.DOOR
+            typeChar == "W" -> LogType.WARNING
+            typeChar == "U" -> LogType.USER
             else -> LogType.INFO
         }
 
@@ -372,6 +382,12 @@ class SettingsScreenViewModel(
                             _debugDoorTime.value = part.substring(6).toIntOrNull() ?: 0
                         } else if (part.startsWith("DPAUSE:")) {
                             _debugDoorCooldown.value = part.substring(7).toIntOrNull() ?: 0
+                        } else if (part.startsWith("RTC:")) {
+                            _debugRtcTime.value = part.substring(4)
+                        } else if (part.startsWith("TEMP:")) {
+                            _debugTemperature.value = part.substring(5).toFloatOrNull() ?: 0f
+                        } else if (part.startsWith("BAT:")) {
+                            _isBatteryOk.value = part.substring(4) == "1"
                         }
                     }
                 } catch (e: Exception) {
@@ -408,6 +424,16 @@ class SettingsScreenViewModel(
     fun sendDoorParams(timeMs: Int, cooldownMs: Int) {
         viewModelScope.launch {
             connectionManager.sendCommand("SETDOOR:$timeMs|$cooldownMs")
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun syncRtcTime() {
+        viewModelScope.launch {
+            val now = java.time.LocalDateTime.now()
+            // Формат: SETTIME:YYYY|MM|DD|HH|MM|SS
+            val timeCmd = "SETTIME:${now.year}|${now.monthValue}|${now.dayOfMonth}|${now.hour}|${now.minute}|${now.second}"
+            connectionManager.sendCommand(timeCmd)
         }
     }
 

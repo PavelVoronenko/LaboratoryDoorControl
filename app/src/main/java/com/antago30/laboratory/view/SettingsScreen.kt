@@ -93,11 +93,6 @@ fun SettingsScreen(
             connectionManager.subscribeToSensorData()
             connectionManager.requestMtu(200)
 
-            // Синхронизация времени RTC
-            val now = java.time.LocalDateTime.now()
-            val timeCmd = "SETTIME:${now.year}|${now.monthValue}|${now.dayOfMonth}|${now.hour}|${now.minute}|${now.second}"
-            connectionManager.sendCommand(timeCmd)
-
             // Запрос истории логов и списка пользователей после готовности сервисов
             kotlinx.coroutines.delay(500)
             viewModel.requestLogHistory()

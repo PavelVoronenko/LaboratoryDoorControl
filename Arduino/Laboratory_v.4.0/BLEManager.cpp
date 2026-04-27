@@ -326,7 +326,18 @@ void sendCommand() {
 void sendDebugData(float distance, int threshold, int doorTime, int doorCooldown) {
     // Отправляем данные только если на характеристику подписаны (уведомления включены)
     if (DebugChar->getDescriptorByUUID("2902") != nullptr) {
-        String debugData = "DIST:" + String(distance, 2) + "|THRESH:" + String(threshold) + "|DTIME:" + String(doorTime) + "|DPAUSE:" + String(doorCooldown);
+        DateTime now = rtc.now();
+        float temp = rtc.getTemperature();
+        char buf[32];
+        sprintf(buf, "%02d.%02d.%04d %02d:%02d:%02d",
+                now.day(), now.month(), now.year(),
+                now.hour(), now.minute(), now.second());
+
+        String debugData = "DIST:" + String(distance, 2) + "|THRESH:" + String(threshold) +
+                           "|DTIME:" + String(doorTime) + "|DPAUSE:" + String(doorCooldown) +
+                           "|RTC:" + String(buf) + "|TEMP:" + String(temp, 1) +
+                           "|BAT:" + String(batteryWarning ? "0" : "1");
+
         DebugChar->setValue(debugData.c_str());
         DebugChar->notify();
     }
