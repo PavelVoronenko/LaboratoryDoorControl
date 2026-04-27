@@ -6,6 +6,9 @@
 #include "BLEManager.h"
 #include "DoorControl.h"
 
+// ------------------ Измерение расстояния HC-SR04 ------------------
+float getDistance();
+
 // ------------------ Обновление статуса доверенных устройств --------------
 void updateDeviceStatus(String name, String newStatus);
 

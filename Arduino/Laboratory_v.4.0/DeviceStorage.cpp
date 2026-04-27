@@ -5,6 +5,7 @@
 Preferences usersPrefs;
 TrustedDevice trustedDevices[MAX_USERS];
 int trustedDevicesCount = 0;
+int currentDistanceThreshold = DISTANCE_THRESHOLD;
 
 // ------------------ Инициализация хранилища ------------------
 void initStorage() {
@@ -48,6 +49,8 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
       // Runtime-поля
       outArray[count].location = "inside";
       outArray[count].userTime = 0;
+      outArray[count].processStartTime = 0;
+      outArray[count].lastTransitionTime = 0;
       outArray[count].entryInProgress = false;
       outArray[count].exitInProgress = false;
 
@@ -119,4 +122,16 @@ void setManualRebootFlag(bool status) {
 
 bool getManualRebootFlag() {
   return usersPrefs.getBool("reboot_flag", false);
+}
+
+// ------------------ Управление порогом расстояния ------------------
+void saveDistanceThreshold(int threshold) {
+  currentDistanceThreshold = threshold;
+  usersPrefs.putInt("dist_threshold", threshold);
+}
+
+int loadDistanceThreshold() {
+  currentDistanceThreshold = usersPrefs.getInt("dist_threshold", DISTANCE_THRESHOLD);
+  Serial.printf("Загружен порог расстояния: %d см (дефолт: %d)\n", currentDistanceThreshold, DISTANCE_THRESHOLD);
+  return currentDistanceThreshold;
 }

@@ -10,8 +10,11 @@ void initPins() {
   pinMode(OPENING_PIN, OUTPUT);
   pinMode(SPEAKER_PIN, OUTPUT);
   pinMode(SENSOR_PIN, INPUT_PULLUP);
-  
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
   digitalWrite(OPENING_PIN, LOW);
+  digitalWrite(TRIG_PIN, LOW);
   ledcAttach(SPEAKER_PIN, 4, 8);
 }
 

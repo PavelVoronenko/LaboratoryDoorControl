@@ -341,6 +341,13 @@ class SettingsScreenViewModel(
         }
     }
 
+    @Suppress("MissingPermission")
+    fun sendDistanceThreshold(distance: Int) {
+        viewModelScope.launch {
+            connectionManager.sendCommand("SETDIST:$distance")
+        }
+    }
+
     fun clearLogs() {
         _terminalLogs.value = emptyList()
     }

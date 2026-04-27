@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.antago30.laboratory.ble.BleConnectionManager
+import com.antago30.laboratory.view.DebugScreen
 import com.antago30.laboratory.view.LabControlScreen
 import com.antago30.laboratory.view.SettingsScreen
 import com.antago30.laboratory.view.UserManagementScreen
@@ -57,7 +58,14 @@ fun LaboratoryApp(
                 viewModel = settingsScreenViewModel,
                 onBack = { navController.popBackStack() },
                 onManageUsersClick = { navController.navigate("user_management") },
+                onDebugClick = { navController.navigate("debug") },
                 connectionManager = connectionManager
+            )
+        }
+        composable("debug") {
+            DebugScreen(
+                viewModel = settingsScreenViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
         composable("user_management") {

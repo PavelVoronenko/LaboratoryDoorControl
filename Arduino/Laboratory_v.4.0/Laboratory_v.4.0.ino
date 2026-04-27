@@ -20,6 +20,9 @@ void setup() {
   // Инициализация NVS
   initStorage();
 
+  // Загрузка порога расстояния
+  loadDistanceThreshold();
+
   // Загрузка пользователей из памяти
   trustedDevicesCount = loadTrustedDevices(trustedDevices, MAX_USERS);
   Serial.printf("Загружено %d доверенных устройств из NVS\n", trustedDevicesCount);
@@ -101,13 +104,13 @@ void Task2code(void * pvParameters) {
       openDoor(10, "PIR SENSOR");
     }
 
-    // Обнуление процесса входа/выхода
+    // Обнуление процесса входа/выхода (таймаут 20 секунд)
     for (int i = 0; i < trustedDevicesCount; i++) {
-      if (millis() - trustedDevices[i].userTime > 10000) {
-        if (trustedDevices[i].entryInProgress || trustedDevices[i].exitInProgress) {
+      if (trustedDevices[i].entryInProgress || trustedDevices[i].exitInProgress) {
+        if (millis() - trustedDevices[i].processStartTime > 20000) {
           trustedDevices[i].entryInProgress = false;
           trustedDevices[i].exitInProgress = false;
-          //log(trustedDevices[i].name + " не закончил процесс входа/выхода");
+          log(trustedDevices[i].name + " таймаут перехода", LOG_WARN);
         }
       }
     }

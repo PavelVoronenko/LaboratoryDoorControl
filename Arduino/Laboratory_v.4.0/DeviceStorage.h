@@ -27,6 +27,8 @@ struct TrustedDevice {
   int rssiThresholdEntry;
   int rssiThresholdExit;
   uint64_t userTime;
+  uint64_t processStartTime;
+  uint64_t lastTransitionTime;
   bool entryInProgress;
   bool exitInProgress;
 };
@@ -53,9 +55,14 @@ int findDeviceByUUID(const TrustedDevice* array, int count, const String& uuid, 
 void setManualRebootFlag(bool status);
 bool getManualRebootFlag();
 
+// ------------------ Управление порогом расстояния ------------------
+void saveDistanceThreshold(int threshold);
+int loadDistanceThreshold();
+
 // Глобальные переменные
 extern Preferences usersPrefs;
 extern TrustedDevice trustedDevices[];
 extern int trustedDevicesCount;
+extern int currentDistanceThreshold;
 
 #endif // DEVICE_STORAGE_H

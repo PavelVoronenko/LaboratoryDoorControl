@@ -181,6 +181,15 @@ void commandHandler() {
       updateThresholdsFromCommand(params);
     }
 
+    // SETDIST:value
+    if (cmd.startsWith("SETDIST:")) {
+      int newDist = cmd.substring(8).toInt();
+      if (newDist > 0) {
+        saveDistanceThreshold(newDist);
+        log("Порог расстояния изменён: " + String(newDist) + " см", LOG_INFO);
+      }
+    }
+
     // DELUSER:id
     if (cmd.startsWith("DELUSER:")) {
       int id = cmd.substring(8).toInt();

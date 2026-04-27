@@ -54,7 +54,7 @@ fun SettingsHeader(
     onBack: () -> Unit,
     onBleDeviceClick: () -> Unit = {},
     onReconnectJde: () -> Unit = {},
-    onReboot: () -> Unit = {},
+    onDebugClick: () -> Unit = {},
     showBleButton: Boolean = true,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     isJdeConnected: Boolean = false
@@ -141,7 +141,7 @@ fun SettingsHeader(
 
                         if (clickCount >= 7) {
                             clickCount = 0
-                            onReboot()
+                            onDebugClick()
                         }
                     }
                 )

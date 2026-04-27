@@ -57,6 +57,7 @@ fun SettingsScreen(
     viewModel: SettingsScreenViewModel,
     onBack: () -> Unit,
     onManageUsersClick: () -> Unit,
+    onDebugClick: () -> Unit,
     connectionManager: com.antago30.laboratory.ble.BleConnectionManager
 ) {
     val context = LocalContext.current
@@ -158,7 +159,7 @@ fun SettingsScreen(
                     }
                 },
                 onReconnectJde = { viewModel.reconnectJde() },
-                onReboot = { viewModel.rebootController() },
+                onDebugClick = onDebugClick,
                 showBleButton = true,
                 connectionState = bleConnectionState,
                 isJdeConnected = isJdeConnected
