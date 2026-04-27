@@ -135,7 +135,7 @@ void Task2code(void * pvParameters) {
         if (millis() - trustedDevices[i].processStartTime > 10000) {
           trustedDevices[i].entryInProgress = false;
           trustedDevices[i].exitInProgress = false;
-          log(trustedDevices[i].name + " таймаут перехода", LOG_WARN);
+          // log(trustedDevices[i].name + " таймаут перехода", LOG_WARN);
         }
       }
     }
