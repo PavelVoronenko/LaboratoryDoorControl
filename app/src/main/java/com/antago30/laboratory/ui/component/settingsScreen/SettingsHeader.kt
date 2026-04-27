@@ -52,11 +52,11 @@ import kotlinx.coroutines.launch
 fun SettingsHeader(
     modifier: Modifier = Modifier,
     title: String = "Настройки",
-    onBack: () -> Unit,
+    onBack: () -> Unit = {},
     onBleDeviceClick: () -> Unit = {},
     onReconnectJde: () -> Unit = {},
     onDebugClick: () -> Unit = {},
-    showBackButton: Boolean = true,
+    showBackButton: Boolean = false,
     showBleButton: Boolean = true,
     showJdeButton: Boolean = true,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,

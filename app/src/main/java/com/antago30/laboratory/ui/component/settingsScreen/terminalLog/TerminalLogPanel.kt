@@ -58,6 +58,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -242,7 +244,7 @@ fun TerminalLogPanel(
                     Text(
                         text = "Ожидание данных...",
                         modifier = Modifier.align(Alignment.Center),
-                        color = Color.Gray.copy(alpha = 0.5f),
+                        color = Color(0xFF94A3B8),
                         fontSize = 14.sp
                     )
                 } else {
@@ -328,29 +330,38 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
         ) {
             Text(
                 text = entry.message,
-                color = Color.Gray.copy(alpha = 0.6f),
+                color = Color(0xFF94A3B8),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
             )
         }
     } else {
+        // Вычисляем ширину временной метки (10 символов [HH:mm:ss]) на основе размера шрифта.
+        // Это позволяет выровнять сообщения в одну колонку, сохраняя поддержку масштабирования текста.
+        val density = LocalDensity.current
+        val timeWidth = with(density) { (13.sp * 6.05f).toDp() }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 1.dp)
+                .padding(vertical = 1.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = entry.getFormattedTime(),
-                color = entry.getTimeColor(),
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Medium,
+                modifier = Modifier.width(timeWidth),
+                style = TextStyle(
+                    color = entry.getTimeColor(),
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Start,
+                    fontFeatureSettings = "tnum"
+                ),
                 maxLines = 1,
                 softWrap = false
             )
-
-            Spacer(modifier = Modifier.width(8.dp))
 
             Text(
                 text = entry.message,

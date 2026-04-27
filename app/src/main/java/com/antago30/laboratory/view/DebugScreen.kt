@@ -239,7 +239,7 @@ fun DebugScreen(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Schedule, null, tint = Primary, modifier = Modifier.size(20.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text("Real Time Clock", fontWeight = FontWeight.Bold, color = Primary, fontSize = 18.sp)
+                                        Text("Time", fontWeight = FontWeight.Bold, color = Primary, fontSize = 18.sp)
                                     }
                                     
                                     Text(

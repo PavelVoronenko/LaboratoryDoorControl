@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
@@ -43,7 +42,6 @@ fun UserManagementScreen(
     connectionManager: BleConnectionManager,
     onUserChanged: () -> Unit = {}
 ) {
-    val context = LocalContext.current
     val users by viewModel.users.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val showError by viewModel.showError.collectAsState()
@@ -113,7 +111,8 @@ fun UserManagementScreen(
         topBar = {
             UserManagementTopBar(
                 onBack = onBackClick,
-                title = if (showAddForm) "Новый пользователь" else "Пользователи"
+                title = if (showAddForm) "Новый пользователь" else "Пользователи",
+                showBackButton = false
             )
         },
         floatingActionButton = {
@@ -145,88 +144,94 @@ fun UserManagementScreen(
                     )
                 }
             }
-        },
-        modifier = modifier
-    ) { innerPadding ->
-        // ✅ Основной анимированный контент
-        AnimatedContent(
-            targetState = showAddForm,
-            label = "screenTransition",
-            transitionSpec = {
-                val slideDirection = if (targetState) -1 else 1
-                slideInVertically(animationSpec = tween(300)) { height ->
-                    slideDirection * height
-                } + fadeIn(animationSpec = tween(200)) togetherWith
-                        slideOutVertically(animationSpec = tween(300)) { height ->
-                            -slideDirection * height
-                        } + fadeOut(animationSpec = tween(200))
-            }
-        ) { isFormVisible ->
-            if (isFormVisible) {
-                UserAddForm(
-                    userId = userId,
-                    userName = userName,
-                    selectedUuid = selectedUuid,
-                    selectedServiceData = selectedServiceData,
-                    macAddress = macAddress,
-                    rssiThreshold = rssiThreshold,
-                    isLoading = isLoading,
-                    isAddingUser = isAddingUser,
-                    onUserNameChange = { userName = it },
-                    isConnected = isConnected == ConnectionState.READY,
-                    onMacAddressChange = { input ->
-                        macAddress = input
-                    },
-                    onAdd = { params ->
-                        viewModel.addUser(params)
-                        showAddForm = false
-                        userId = ""; userName = ""; macAddress = ""; rssiThreshold = "-70"
-                        selectedUuid = ""; selectedServiceData = ""
-                    },
-                    onError = { viewModel.setError(it) },
-                    getNextAvailableId = { viewModel.getNextAvailableId() },
-                    areUuidsExhausted = areUuidsExhausted,
-                    areServiceDataExhausted = areServiceDataExhausted,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                )
-            } else {
-                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                    UserList(
-                        users = users,
-                        onDeleteClick = { id -> 
-                            userToDelete = users.find { it.id == id }
-                        },
+        }
+    ) { padding ->
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            // ✅ Основной анимированный контент
+            AnimatedContent(
+                targetState = showAddForm,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                label = "screenTransition",
+                transitionSpec = {
+                    val slideDirection = if (targetState) -1 else 1
+                    slideInVertically(animationSpec = tween(300)) { height ->
+                        slideDirection * height
+                    } + fadeIn(animationSpec = tween(200)) togetherWith
+                            slideOutVertically(animationSpec = tween(300)) { height ->
+                                -slideDirection * height
+                            } + fadeOut(animationSpec = tween(200))
+                }
+            ) { isFormVisible ->
+                if (isFormVisible) {
+                    UserAddForm(
+                        userId = userId,
+                        userName = userName,
+                        selectedUuid = selectedUuid,
+                        selectedServiceData = selectedServiceData,
+                        macAddress = macAddress,
+                        rssiThreshold = rssiThreshold,
+                        isLoading = isLoading,
+                        isAddingUser = isAddingUser,
+                        onUserNameChange = { userName = it },
                         isConnected = isConnected == ConnectionState.READY,
-                        currentUserId = currentUserId,
-                        onUserSelected = { userInfo ->
-                            viewModel.selectCurrentUser(userInfo)
-                            onUserChanged()
+                        onMacAddressChange = { input ->
+                            macAddress = input
                         },
+                        onAdd = { params ->
+                            viewModel.addUser(params)
+                            showAddForm = false
+                            userId = ""; userName = ""; macAddress = ""; rssiThreshold = "-70"
+                            selectedUuid = ""; selectedServiceData = ""
+                        },
+                        onError = { viewModel.setError(it) },
+                        getNextAvailableId = { viewModel.getNextAvailableId() },
+                        areUuidsExhausted = areUuidsExhausted,
+                        areServiceDataExhausted = areServiceDataExhausted,
                         modifier = Modifier.fillMaxSize()
                     )
-
-                    // Окно подтверждения удаления
-                    userToDelete?.let { user ->
-                        DeleteUserConfirmationDialog(
-                            user = user,
-                            onConfirm = {
-                                viewModel.deleteUser(user.id)
-                                userToDelete = null
+                } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        UserList(
+                            users = users,
+                            onDeleteClick = { id -> 
+                                userToDelete = users.find { it.id == id }
                             },
-                            onDismiss = { userToDelete = null }
+                            isConnected = isConnected == ConnectionState.READY,
+                            currentUserId = currentUserId,
+                            onUserSelected = { userInfo ->
+                                viewModel.selectCurrentUser(userInfo)
+                                onUserChanged()
+                            },
+                            modifier = Modifier.fillMaxSize()
                         )
-                    }
 
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding( bottom = 24.dp),
-                            color = Primary,
-                            strokeWidth = 3.dp
-                        )
+                        // Окно подтверждения удаления
+                        userToDelete?.let { user ->
+                            DeleteUserConfirmationDialog(
+                                user = user,
+                                onConfirm = {
+                                    viewModel.deleteUser(user.id)
+                                    userToDelete = null
+                                },
+                                onDismiss = { userToDelete = null }
+                            )
+                        }
+
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding( bottom = 24.dp),
+                                color = Primary,
+                                strokeWidth = 3.dp
+                            )
+                        }
                     }
                 }
             }

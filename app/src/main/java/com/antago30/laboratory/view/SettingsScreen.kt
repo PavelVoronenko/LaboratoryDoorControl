@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ManageAccounts
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +56,6 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsScreenViewModel,
-    onBack: () -> Unit,
     onManageUsersClick: () -> Unit,
     onDebugClick: () -> Unit,
     connectionManager: com.antago30.laboratory.ble.BleConnectionManager
@@ -141,7 +141,6 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             SettingsHeader(
-                onBack = onBack,
                 onBleDeviceClick = {
                     val hasPermissions = viewModel.checkBlePermissions(context)
                     if (hasPermissions) {
@@ -202,54 +201,71 @@ fun SettingsScreen(
             }
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (selectedDeviceAddress == null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 40.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Выберите устройство",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = "Нажмите на иконку 🔗 в шапке экрана",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            } else {
-                TerminalLogPanel(
-                    logs = terminalLogs,
-                    onClearLogs = { viewModel.clearLogs() },
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    isTerminalActive = isTerminalActive,
-                    isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
-                )
-
-                currentUserInfo?.let { user ->
-                    androidx.compose.runtime.key(user.id) {
-                        RssiThresholdSection(
-                            initialEntry = "${user.rssiThresholdEntry} дБм",
-                            initialExit = "${user.rssiThresholdExit} дБм",
-                            onThresholdsChanged = { entry, exit ->
-                                viewModel.updateThresholds(entry, exit)
-                            },
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                            isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (selectedDeviceAddress == null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Выберите устройство",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                        Text(
+                            text = "Нажмите на иконку 🔗 в шапке экрана",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                     }
+                } else {
+                    TerminalLogPanel(
+                        logs = terminalLogs,
+                        onClearLogs = { viewModel.clearLogs() },
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        isTerminalActive = isTerminalActive,
+                        isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
+                    )
+
+                    currentUserInfo?.let { user ->
+                        androidx.compose.runtime.key(user.id) {
+                            RssiThresholdSection(
+                                initialEntry = "${user.rssiThresholdEntry} дБм",
+                                initialExit = "${user.rssiThresholdExit} дБм",
+                                onThresholdsChanged = { entry, exit ->
+                                    viewModel.updateThresholds(entry, exit)
+                                },
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
+                            )
+                        }
+                    }
                 }
+            }
+
+            if (bleConnectionState != com.antago30.laboratory.model.ConnectionState.READY) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 72.dp)
+                        .size(48.dp),
+                    color = Primary,
+                    trackColor = Primary.copy(alpha = 0.1f),
+                    strokeWidth = 5.dp
+                )
             }
         }
     }

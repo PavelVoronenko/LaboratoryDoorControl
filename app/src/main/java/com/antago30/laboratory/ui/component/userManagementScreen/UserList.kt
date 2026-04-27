@@ -34,9 +34,9 @@ fun UserList(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 16.dp,
+                start = 8.dp,
+                end = 8.dp,
+                top = 0.dp,
                 bottom = 16.dp
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp)
