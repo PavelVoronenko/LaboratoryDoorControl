@@ -3,7 +3,7 @@
 
 // ------------------------------- Пины ---------------------------------
 #define OPENING_PIN 32
-#define SPEAKER_PIN 22
+#define SPEAKER_PIN 19
 #define SENSOR_PIN 23
 #define TRIG_PIN 5
 #define ECHO_PIN 18
