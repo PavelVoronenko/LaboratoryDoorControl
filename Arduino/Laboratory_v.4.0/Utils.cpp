@@ -6,6 +6,7 @@
 String lightStatus = "LIGHTSTATUS:0";
 bool autoLightOutside = true;
 unsigned long SendCommandTime = 0;
+float lastMeasuredDistance = 0.0f;
 
 // ------------------ Измерение расстояния HC-SR04 ------------------
 float getDistance() {
@@ -78,6 +79,7 @@ void processExitAndEntry(DevicesDetected *devDetected) {
 
 void checkEntryExitStatus() {
   float distance = getDistance();
+  lastMeasuredDistance = distance;
   bool pirTriggered = (digitalRead(SENSOR_PIN) == LOW);
   unsigned long now = millis();
 

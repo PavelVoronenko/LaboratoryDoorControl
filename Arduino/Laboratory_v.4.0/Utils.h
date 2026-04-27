@@ -8,6 +8,7 @@
 
 // ------------------ Измерение расстояния HC-SR04 ------------------
 float getDistance();
+extern float lastMeasuredDistance;
 
 // ------------------ Обновление статуса доверенных устройств --------------
 void updateDeviceStatus(String name, String newStatus);

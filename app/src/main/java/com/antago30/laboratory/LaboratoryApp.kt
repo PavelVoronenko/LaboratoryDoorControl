@@ -65,7 +65,8 @@ fun LaboratoryApp(
         composable("debug") {
             DebugScreen(
                 viewModel = settingsScreenViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                connectionManager = connectionManager
             )
         }
         composable("user_management") {

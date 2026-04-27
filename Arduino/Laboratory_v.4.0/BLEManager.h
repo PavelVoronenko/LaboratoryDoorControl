@@ -21,6 +21,7 @@ struct DevicesDetected {
 extern BLEServer* pServer;
 extern BLECharacteristic* pCharacteristic;
 extern BLECharacteristic* Terminal;
+extern BLECharacteristic* DebugChar;
 extern BLEScan* pBLEScan;
 extern BLEClient *pClient;
 extern BLERemoteCharacteristic* pRemoteCharacteristic;
@@ -55,6 +56,7 @@ void log(String message, LogType type = LOG_INFO);
 
 // ------------------ Отправка служебных данных ------------------
 void sendCommand();
+void sendDebugData(float distance, int threshold);
 
 // ------------------ Отправка списка пользователей ------------------
 void sendUserListChunked();

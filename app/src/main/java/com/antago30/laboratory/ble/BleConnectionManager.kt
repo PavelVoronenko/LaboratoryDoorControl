@@ -47,6 +47,7 @@ class BleConnectionManager(
 
         val SYSTEM_MESSAGE_CHARACTERISTIC: UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
         val TERMINAL_CHARACTERISTIC: UUID = UUID.fromString("e3223119-9445-4e96-a4a1-85358c4046a2")
+        val DEBUG_CHARACTERISTIC: UUID = UUID.fromString("d4ad22a3-f08a-4933-8889-8d754b2b2b2b")
 
         @SuppressLint("StaticFieldLeak")
         @Volatile
@@ -71,6 +72,7 @@ class BleConnectionManager(
     val connectionStateFlow: StateFlow<ConnectionState> = connectionState.state
     val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
     val terminalData: SharedFlow<CharacteristicData> = callbackHandler.terminalUpdates
+    val debugData: SharedFlow<CharacteristicData> = callbackHandler.debugUpdates
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): ConnectResult {
@@ -124,11 +126,21 @@ class BleConnectionManager(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun subscribeToCharacteristic(uuid: UUID): Boolean {
+        return toggleCharacteristicNotification(uuid, true)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun unsubscribeFromCharacteristic(uuid: UUID): Boolean {
+        return toggleCharacteristicNotification(uuid, false)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private fun toggleCharacteristicNotification(uuid: UUID, enable: Boolean): Boolean {
         val gatt = connectionHandler.getGatt() ?: return false
         val service = gatt.getService(SERVICE_UUID) ?: return false
         val characteristic = service.getCharacteristic(uuid) ?: return false
 
-        if (!gatt.setCharacteristicNotification(characteristic, true)) {
+        if (!gatt.setCharacteristicNotification(characteristic, enable)) {
             return false
         }
 
@@ -137,8 +149,7 @@ class BleConnectionManager(
             return false
         }
 
-        // Определяем тип уведомления
-        val enableValue =
+        val enableValue = if (enable) {
             if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) {
                 BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
             } else if (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE != 0) {
@@ -146,6 +157,9 @@ class BleConnectionManager(
             } else {
                 return false
             }
+        } else {
+            BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+        }
 
         return gatt.writeDescriptor(descriptor, enableValue) == BluetoothStatusCodes.SUCCESS
     }
@@ -155,6 +169,16 @@ class BleConnectionManager(
         val systemMessageLog = subscribeToCharacteristic(SYSTEM_MESSAGE_CHARACTERISTIC)
         val terminalLog = subscribeToCharacteristic(TERMINAL_CHARACTERISTIC)
         return systemMessageLog && terminalLog
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun subscribeToDebugData(): Boolean {
+        return subscribeToCharacteristic(DEBUG_CHARACTERISTIC)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun unsubscribeFromDebugData(): Boolean {
+        return unsubscribeFromCharacteristic(DEBUG_CHARACTERISTIC)
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)

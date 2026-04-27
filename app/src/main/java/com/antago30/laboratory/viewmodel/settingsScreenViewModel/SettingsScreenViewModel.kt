@@ -62,6 +62,12 @@ class SettingsScreenViewModel(
     private val _currentUserInfo = MutableStateFlow(settingsRepo.getCurrentUserInfo())
     val currentUserInfo: StateFlow<UserInfo?> = _currentUserInfo.asStateFlow()
 
+    private val _debugDistance = MutableStateFlow(0f)
+    val debugDistance: StateFlow<Float> = _debugDistance.asStateFlow()
+
+    private val _debugThreshold = MutableStateFlow(0)
+    val debugThreshold: StateFlow<Int> = _debugThreshold.asStateFlow()
+
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListTotalChunks = 0
@@ -79,6 +85,7 @@ class SettingsScreenViewModel(
     private var historyTimeoutJob: Job? = null
 
     private var terminalObservationJob: Job? = null
+    private var debugObservationJob: Job? = null
 
     init {
         loadSavedDevice()
@@ -331,6 +338,45 @@ class SettingsScreenViewModel(
     fun reconnectJde() {
         viewModelScope.launch {
             connectionManager.sendCommand("RECONNECT_JDE")
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun startDebugObservation() {
+        // Всегда подписываемся на данные при вызове (важно при переподключении)
+        viewModelScope.launch {
+            connectionManager.subscribeToDebugData()
+        }
+
+        if (debugObservationJob?.isActive == true) return
+
+        debugObservationJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            connectionManager.debugData.collect { data ->
+                val response = String(data.value.toByteArray(), Charsets.UTF_8).trim()
+                Log.d("SettingsViewModel", "🛠️ Debug data: '$response'")
+                // Формат: DIST:14.91|THRESH:80
+                try {
+                    val parts = response.split("|")
+                    parts.forEach { part ->
+                        if (part.startsWith("DIST:")) {
+                            _debugDistance.value = part.substring(5).toFloatOrNull() ?: 0f
+                        } else if (part.startsWith("THRESH:")) {
+                            _debugThreshold.value = part.substring(7).toIntOrNull() ?: 0
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("SettingsViewModel", "Error parsing debug data: $response", e)
+                }
+            }
+        }
+    }
+
+    @Suppress("MissingPermission")
+    fun stopDebugObservation() {
+        debugObservationJob?.cancel()
+        debugObservationJob = null
+        viewModelScope.launch {
+            connectionManager.unsubscribeFromDebugData()
         }
     }
 

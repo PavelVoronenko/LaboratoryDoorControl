@@ -58,6 +58,8 @@ void setup() {
   }
 }
 
+unsigned long lastDebugTime = 0;
+
 //-----------------------------------First Core------------------------------------------------//
 void Task1code(void * pvParameters) {
   for (;;) {
@@ -68,6 +70,12 @@ void Task1code(void * pvParameters) {
     if (millis() - SendCommandTime > 1000) {
       SendCommandTime = millis();
       sendCommand();
+    }
+
+    // Отправка отладочных данных (раз в 500мс)
+    if (millis() - lastDebugTime > 500) {
+      lastDebugTime = millis();
+      sendDebugData(lastMeasuredDistance, currentDistanceThreshold);
     }
 
     // Попытка восстановить соединение с JDY-33

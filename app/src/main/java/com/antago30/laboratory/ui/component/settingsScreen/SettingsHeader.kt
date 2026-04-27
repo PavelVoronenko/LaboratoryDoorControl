@@ -51,11 +51,14 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsHeader(
     modifier: Modifier = Modifier,
+    title: String = "Настройки",
     onBack: () -> Unit,
     onBleDeviceClick: () -> Unit = {},
     onReconnectJde: () -> Unit = {},
     onDebugClick: () -> Unit = {},
+    showBackButton: Boolean = true,
     showBleButton: Boolean = true,
+    showJdeButton: Boolean = true,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     isJdeConnected: Boolean = false
 ) {
@@ -93,32 +96,34 @@ fun SettingsHeader(
         contentAlignment = Alignment.Center
     ) {
         // === Левая часть: кнопка назад ===
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(44.dp)
-                .scale(animatedBackScale)
-                .clip(CircleShape)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = ripple(color = Primary, bounded = false),
-                    onClick = {
-                        backScale = 0.85f
-                        scope.launch {
-                            delay(100)
-                            backScale = 1f
-                            onBack()
+        if (showBackButton) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(44.dp)
+                    .scale(animatedBackScale)
+                    .clip(CircleShape)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(color = Primary, bounded = false),
+                        onClick = {
+                            backScale = 0.85f
+                            scope.launch {
+                                delay(100)
+                                backScale = 1f
+                                onBack()
+                            }
                         }
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_arrow_back),
-                contentDescription = stringResource(R.string.back),
-                tint = Primary.copy(alpha = 0.85f),
-                modifier = Modifier.size(32.dp)
-            )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
+                    contentDescription = stringResource(R.string.back),
+                    tint = Primary.copy(alpha = 0.85f),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
 
         // === Секретная кнопка перезагрузки (невидимая) ===
@@ -149,7 +154,7 @@ fun SettingsHeader(
 
         // === Центр: заголовок ===
         Text(
-            text = "Настройки",
+            text = title,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
             color = Primary,
@@ -162,8 +167,8 @@ fun SettingsHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Кнопка переподключения освещения (только если НЕ подключено)
-            if (!isJdeConnected) {
+            // Кнопка переподключения освещения (только если НЕ подключено и разрешено)
+            if (!isJdeConnected && showJdeButton) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)

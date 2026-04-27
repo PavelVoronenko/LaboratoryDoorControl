@@ -5,6 +5,7 @@
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 BLECharacteristic* Terminal = NULL;
+BLECharacteristic* DebugChar = NULL;
 BLEClient *pClient = NULL;
 BLERemoteCharacteristic* pRemoteCharacteristic = NULL;
 BLEScan* pBLEScan;
@@ -156,6 +157,7 @@ void initBLEServer() {
   BLEService *pService = pServer->createService(SERVICE_UUID);
   pCharacteristic = pService->createCharacteristic(CHAR1_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
   Terminal = pService->createCharacteristic(CHAR2_UUID_TERMINAL, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+  DebugChar = pService->createCharacteristic(CHAR3_UUID_DEBUG, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
 
   BLEDescriptor *pDescr = new BLEDescriptor((uint16_t)0x2901);
   pDescr->setValue("A very interesting variable");
@@ -169,6 +171,11 @@ void initBLEServer() {
   terminalBLE2902->setNotifications(true);
   Terminal->addDescriptor(terminalBLE2902);
   Terminal->setCallbacks(new CharacteristicCallBack());
+
+  BLE2902 *debugBLE2902 = new BLE2902();
+  debugBLE2902->setNotifications(true);
+  DebugChar->addDescriptor(debugBLE2902);
+
   pService->start();
 
   // Запускаем рекламу с актуальными данными
@@ -288,6 +295,15 @@ void sendCommand() {
   }
   pCharacteristic->setValue(sendData.c_str());
   pCharacteristic->notify();
+}
+
+void sendDebugData(float distance, int threshold) {
+    // Отправляем данные только если на характеристику подписаны (уведомления включены)
+    if (DebugChar->getDescriptorByUUID("2902") != nullptr) {
+        String debugData = "DIST:" + String(distance, 2) + "|THRESH:" + String(threshold);
+        DebugChar->setValue(debugData.c_str());
+        DebugChar->notify();
+    }
 }
 
 // ----------------------- Отправка списка пользователей в приложение -----------------------
