@@ -346,11 +346,13 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 1.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Text(
                 text = entry.getFormattedTime(),
-                modifier = Modifier.width(timeWidth),
+                modifier = Modifier
+                    .width(timeWidth)
+                    .padding(top = 1.dp),
                 style = TextStyle(
                     color = entry.getTimeColor(),
                     fontSize = 13.sp,
