@@ -21,6 +21,11 @@ class BleCommandSender(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun sendCommand(command: String = "TEST"): Result {
+        return sendData(command.toByteArray(Charsets.UTF_8))
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun sendData(bytes: ByteArray, writeType: Int = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE): Result {
         val gatt = getGatt() ?: return Result.NotConnected
         val service = gatt.getService(serviceUuid) ?: return Result.CharacteristicNotFound
         val characteristic = service.getCharacteristic(characteristicUuid)
@@ -33,12 +38,10 @@ class BleCommandSender(
         }
 
         return try {
-            val bytes = command.toByteArray(Charsets.UTF_8)
-            // Пробуем WRITE_TYPE_NO_RESPONSE (быстрее, не требует подтверждения)
             val writeResult = gatt.writeCharacteristic(
                 characteristic,
                 bytes,
-                BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                writeType
             )
             if (writeResult == BluetoothGatt.GATT_SUCCESS) Result.Success else Result.WriteFailed
         } catch (e: Exception) {

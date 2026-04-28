@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -680,6 +681,60 @@ fun DebugScreen(
                                 fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = 4.sp,
                                 color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                // WiFi OTA Button
+                Surface(
+                    onClick = { viewModel.startWifiOta() },
+                    enabled = isEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                        .graphicsLayer { alpha = contentAlpha },
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.Transparent,
+                    border = BorderStroke(
+                        width = 1.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                Primary.copy(alpha = 0.7f),
+                                Primary.copy(alpha = 0.1f),
+                                Primary.copy(alpha = 0.7f)
+                            )
+                        )
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Primary.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                )
+                            )
+                        ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Wifi,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = "WIFI OTA",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 4.sp,
+                                color = Primary
                             )
                         }
                     }

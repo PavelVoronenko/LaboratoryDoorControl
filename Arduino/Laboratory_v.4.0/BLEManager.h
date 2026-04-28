@@ -34,6 +34,7 @@ extern BLERemoteCharacteristic* pRemoteCharacteristic;
 extern bool connected;
 extern bool jdeConnect;
 extern bool verboseLogging;
+extern bool otaModeActive;
 extern String rxValue;
 extern String lightStatus;
 extern bool autoLightOutside;

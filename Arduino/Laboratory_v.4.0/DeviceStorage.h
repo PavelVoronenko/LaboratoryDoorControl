@@ -65,6 +65,10 @@ void saveDoorParams(int openTime, int cooldown);
 int loadDoorOpenTime();
 int loadDoorCooldown();
 
+// ------------------ Управление флагом OTA ------------------
+void setOtaBootFlag(bool status);
+bool getOtaBootFlag();
+
 // Глобальные переменные
 extern Preferences usersPrefs;
 extern TrustedDevice trustedDevices[];

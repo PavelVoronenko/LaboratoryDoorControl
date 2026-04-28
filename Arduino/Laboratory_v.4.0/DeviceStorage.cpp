@@ -160,3 +160,12 @@ int loadDoorCooldown() {
   currentDoorCooldown = usersPrefs.getInt("door_cooldown", 7000);
   return currentDoorCooldown;
 }
+
+// ------------------ Управление флагом OTA ------------------
+void setOtaBootFlag(bool status) {
+  usersPrefs.putBool("ota_boot", status);
+}
+
+bool getOtaBootFlag() {
+  return usersPrefs.getBool("ota_boot", false);
+}

@@ -424,6 +424,13 @@ class SettingsScreenViewModel(
     }
 
     @Suppress("MissingPermission")
+    fun startWifiOta() {
+        viewModelScope.launch {
+            connectionManager.sendCommand("START_WIFI_OTA")
+        }
+    }
+
+    @Suppress("MissingPermission")
     fun sendDistanceThreshold(distance: Int) {
         viewModelScope.launch {
             connectionManager.sendCommand("SETDIST:$distance")

@@ -60,6 +60,12 @@ void addToLogHistory(String message) {
 void log(String message, LogType type) {
   if (type == LOG_VERBOSE && !verboseLogging) return;
 
+  // Если активирован режим OTA, выводим только в Serial, так как BLE может быть деинициализирован
+  if (otaModeActive) {
+    Serial.println("[OTA] " + message);
+    return;
+  }
+
   DateTime now = rtc.now();
   static int lastDay = -1;
 
@@ -67,8 +73,10 @@ void log(String message, LogType type) {
   if (lastDay != now.day()) {
     lastDay = now.day();
     String dateHeader = "--- " + getRussianDate(now) + " ---";
-    Terminal->setValue((uint8_t*)dateHeader.c_str(), dateHeader.length());
-    Terminal->notify();
+    if (Terminal != nullptr) {
+        Terminal->setValue((uint8_t*)dateHeader.c_str(), dateHeader.length());
+        Terminal->notify();
+    }
     addToLogHistory(dateHeader);
     Serial.println(dateHeader);
   }
@@ -85,13 +93,17 @@ void log(String message, LogType type) {
 
   String fullMessage = timeStr + prefix + message;
 
-  Terminal->setValue((uint8_t*)fullMessage.c_str(), fullMessage.length());
-  Terminal->notify();
+  if (Terminal != nullptr) {
+      Terminal->setValue((uint8_t*)fullMessage.c_str(), fullMessage.length());
+      Terminal->notify();
+  }
   Serial.println(fullMessage);
   addToLogHistory(fullMessage);
 }
 
 void sendLogHistoryChunked() {
+  if (otaModeActive || Terminal == nullptr) return;
+
   // Начинаем с самого последнего (нового) лога
   int newestIndex = (logHead - 1 + MAX_LOG_HISTORY) % MAX_LOG_HISTORY;
 
@@ -131,6 +143,8 @@ void sendLogHistoryChunked() {
 
 // ------------------ Инициализация BLE сервера ------------------
 void updateAdvertising() {
+  if (otaModeActive) return;
+
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
 
   // Останавливаем рекламу перед обновлением данных
@@ -259,6 +273,8 @@ bool scanAndConnect() {
 
 // ------------------ Проверка доверенных устройств ------------------
 void scanForTrustedDevices() {
+  if (otaModeActive || pBLEScan == nullptr) return;
+
   BLEScanResults* results = pBLEScan->start(SCAN_TIME, false);
   int devicesIndex = 0;
   int rssi;
@@ -313,6 +329,8 @@ void scanForTrustedDevices() {
 
 // ----------------------- Отправка служебных данных ------------------------------
 void sendCommand() {
+  if (otaModeActive || pCharacteristic == nullptr) return;
+
   extern String lightStatus;
   // Формат: LIGHTSTATUS:0|JDE:1|ID1-0|ID2-1|...
   String sendData = lightStatus + "|JDE:" + String(jdeConnect ? "1" : "0") + "|";
@@ -325,6 +343,8 @@ void sendCommand() {
 }
 
 void sendDebugData(float distance, int threshold, int doorTime, int doorCooldown) {
+    if (otaModeActive || DebugChar == nullptr) return;
+
     // Отправляем данные только если на характеристику подписаны (уведомления включены)
     if (DebugChar->getDescriptorByUUID("2902") != nullptr) {
         DateTime now = rtc.now();
@@ -346,6 +366,8 @@ void sendDebugData(float distance, int threshold, int doorTime, int doorCooldown
 
 // ----------------------- Отправка списка пользователей в приложение -----------------------
 void sendUserListChunked() {
+  if (otaModeActive || pCharacteristic == nullptr) return;
+
   const int MAX_CHUNK_PAYLOAD = 120;
 
   // Формируем полный список

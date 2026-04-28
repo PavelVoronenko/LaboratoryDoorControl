@@ -3,6 +3,7 @@
 #include "BLEManager.h"
 #include "DoorControl.h"
 #include "Utils.h"
+#include "OTAManager.h"
 
 // ----------------------- Парсинг команды ADDUSER и сохранение в NVS -----------------------
 void addNewUserFromCommand(String params) {
@@ -266,6 +267,11 @@ void commandHandler() {
       setManualRebootFlag(true);
       delay(200);
       ESP.restart();
+    }
+
+    // START_WIFI_OTA — переход в режим прошивки по Wi-Fi
+    if (cmd.equalsIgnoreCase("START_WIFI_OTA")) {
+      startOtaMode();
     }
 
     // SETTIME:YYYY|MM|DD|HH|MM|SS

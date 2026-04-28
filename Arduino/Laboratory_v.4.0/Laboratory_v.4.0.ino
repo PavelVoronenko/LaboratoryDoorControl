@@ -5,6 +5,7 @@
 #include "DoorControl.h"
 #include "CommandHandler.h"
 #include "Utils.h"
+#include "OTAManager.h"
 
 // ------------------ Многозадачность --------------------
 TaskHandle_t Task1;
@@ -17,11 +18,28 @@ bool batteryWarning = false;
 void setup() {
   Serial.begin(115200);
 
-  // Устанавливаем частоту CPU (80 МГц)
-  setCpuFrequencyMhz(80);
-
-  // Инициализация NVS
+  // Инициализация NVS для доступа к настройкам
   initStorage();
+
+  // ПРОВЕРКА ФЛАГА OTA ИЗ NVS
+  if (getOtaBootFlag()) {
+    setOtaBootFlag(false); // Сбрасываем флаг сразу
+    otaModeActive = true;
+
+    setCpuFrequencyMhz(160);
+    initPins();
+    setupOtaInBoot();
+
+    Serial.println("Система загружена в режиме OTA. BLE отключен.");
+
+    // Запускаем только Task2 для обслуживания OTA и управления дверью
+    xTaskCreatePinnedToCore(Task2code, "Task2", 26000, NULL, 1, &Task2, 1);
+
+    return; // Пропускаем остальную инициализацию
+  }
+
+  // Устанавливаем частоту CPU (160 МГц для стабильности Wi-Fi+BLE)
+  setCpuFrequencyMhz(160);
 
   // Инициализация RTC DS3231
   if (!rtc.begin()) {
@@ -43,7 +61,7 @@ void setup() {
   trustedDevicesCount = loadTrustedDevices(trustedDevices, MAX_USERS);
   Serial.printf("Загружено %d доверенных устройств из NVS\n", trustedDevicesCount);
 
-  // Инициализация пинов
+  // Инициализация пин-кодов
   initPins();
 
   // Инициализация BLE сервера
@@ -79,6 +97,11 @@ unsigned long lastDebugTime = 0;
 //-----------------------------------First Core------------------------------------------------//
 void Task1code(void * pvParameters) {
   for (;;) {
+    if (otaModeActive) {
+      vTaskDelay(1000 / portTICK_PERIOD_MS);
+      continue;
+    }
+
     // Проверка BLE устройств (для доверенных устройств)
     scanForTrustedDevices();
 
@@ -95,7 +118,7 @@ void Task1code(void * pvParameters) {
     }
 
     // Попытка восстановить соединение с JDY-33
-    if (connected && !pClient->isConnected()) {
+    if (connected && pClient != NULL && !pClient->isConnected()) {
       Serial.println("Соединение потеряно, повторное сканирование...");
       if (scanAndConnect()) {
         Serial.println("Повторное подключение успешно");
@@ -111,6 +134,12 @@ void Task1code(void * pvParameters) {
 //--------------------------------------Second core--------------------------------------------//
 void Task2code(void * pvParameters) {
   for (;;) {
+    if (otaModeActive) {
+      handleOta();
+      vTaskDelay(1 / portTICK_PERIOD_MS); // Минимальная задержка для OTA
+      continue;
+    }
+
     // Обработчик команд приложения
     commandHandler();
 
