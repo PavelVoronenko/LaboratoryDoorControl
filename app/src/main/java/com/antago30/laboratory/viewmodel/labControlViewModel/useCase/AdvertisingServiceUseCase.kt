@@ -1,14 +1,17 @@
 package com.antago30.laboratory.viewmodel.labControlViewModel.useCase
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.antago30.laboratory.ble.BleAdvertisingService
 import com.antago30.laboratory.util.SettingsRepository
-import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,17 +25,34 @@ class AdvertisingServiceUseCase(
     private val _isRunning = MutableStateFlow(false)
     val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
 
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var appContext: Context? = null
+
+    // Ресивер для получения статуса от сервиса
+    private val serviceStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == BleAdvertisingService.ACTION_STATE_CHANGED) {
+                val isRunning = intent.getBooleanExtra(BleAdvertisingService.EXTRA_IS_RUNNING, false)
+                _isRunning.value = isRunning
+                onServiceStateChanged?.invoke(isRunning)
+            }
+        }
+    }
 
     // Callback для уведомления о фактическом состоянии сервиса
     var onServiceStateChanged: ((Boolean) -> Unit)? = null
 
     fun setContext(context: Context) {
-        appContext = context.applicationContext
+        val ctx = context.applicationContext
+        if (appContext == null) {
+            appContext = ctx
+            // Регистрируем ресивер только один раз
+            val filter = IntentFilter(BleAdvertisingService.ACTION_STATE_CHANGED)
+            ctx.registerReceiver(serviceStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        }
         syncState()
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun start() {
         val ctx = appContext ?: run {
             Log.w("AdvertisingUseCase", "Context is null")
@@ -41,7 +61,7 @@ class AdvertisingServiceUseCase(
 
         // Добавляем небольшую задержку, чтобы Activity успела вернуться в фокус
         // после закрытия диалога разрешений. Это критично для Android 14.
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) {
+        scope.launch {
             if (!hasNotificationPermission(ctx)) {
                 delay(500)
             } else {
@@ -84,8 +104,10 @@ class AdvertisingServiceUseCase(
 
     fun stop() {
         val ctx = appContext ?: return
-        val intent = Intent(ctx, BleAdvertisingService::class.java)
-        ctx.stopService(intent)
+        val intent = Intent(ctx, BleAdvertisingService::class.java).apply {
+            action = BleAdvertisingService.ACTION_STOP
+        }
+        ctx.startForegroundService(intent) // Посылаем команду STOP через старт
         _isRunning.value = false
     }
 
@@ -105,11 +127,10 @@ class AdvertisingServiceUseCase(
         }
     }
 
-    @OptIn(DelicateCoroutinesApi::class)
     fun restartWithCurrentUser() {
         if (!_isRunning.value) return
         stop()
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.Main) {
+        scope.launch {
             delay(200)
             start()
         }
@@ -123,7 +144,7 @@ class AdvertisingServiceUseCase(
         val ctx = appContext ?: return
         val isRunning = checkIfServiceIsRunning(ctx)
         _isRunning.value = isRunning
-        onServiceStateChanged?.invoke(isRunning)
+        // НЕ вызываем здесь onServiceStateChanged, чтобы не сбивать тумблер при старте
     }
 
     private fun checkIfServiceIsRunning(context: Context): Boolean {

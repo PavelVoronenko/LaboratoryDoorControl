@@ -15,7 +15,11 @@ class FunctionControlUseCase(
 ) {
     private val settingsRepo: SettingsRepository = connectionManager.getSettingsRepository()
     private val _functions = MutableStateFlow(initialFunctions.map { 
-        if (it.id == "lighting") it.copy(isEnabled = settingsRepo.getLightingState()) else it
+        when (it.id) {
+            "lighting" -> it.copy(isEnabled = settingsRepo.getLightingState())
+            "broadcast" -> it.copy(isEnabled = settingsRepo.isAdvertisingEnabled())
+            else -> it
+        }
     })
     val functions: StateFlow<List<FunctionItem>> = _functions.asStateFlow()
 
@@ -31,7 +35,9 @@ class FunctionControlUseCase(
             if (func.id == id) {
                 val newEnabled = !func.isEnabled
                 when (id) {
-                    "broadcast" -> onAdvertisingToggle(newEnabled)
+                    "broadcast" -> {
+                        onAdvertisingToggle(newEnabled)
+                    }
                     "lighting" -> {
                         if (connectionManager.connectionStateFlow.value == ConnectionState.READY) {
                             val command = if (newEnabled) "LIGHTON" else "LIGHTOFF"

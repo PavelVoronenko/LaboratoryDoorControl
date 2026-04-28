@@ -24,18 +24,27 @@ class BleAdvertiser(
     private val advertiser: BluetoothLeAdvertiser? = adapter?.bluetoothLeAdvertiser
 
     private var isAdvertising = false
+    var onStateChanged: ((Boolean) -> Unit)? = null
+
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             isAdvertising = true
+            onStateChanged?.invoke(true)
         }
 
         override fun onStartFailure(errorCode: Int) {
             isAdvertising = false
+            onStateChanged?.invoke(false)
+            android.util.Log.e("BleAdvertiser", "Advertising failed with error: $errorCode")
         }
     }
 
     fun startAdvertising() {
-        if (!isSupported() || isAdvertising) return
+        if (!isSupported()) {
+            onStateChanged?.invoke(false)
+            return
+        }
+        if (isAdvertising) return
 
         val adDataBytes = adDataString.toByteArray(Charsets.UTF_8)
 
@@ -58,6 +67,7 @@ class BleAdvertiser(
     fun stopAdvertising() {
         advertiser?.stopAdvertising(advertiseCallback)
         isAdvertising = false
+        onStateChanged?.invoke(false)
     }
 
     fun isSupported(): Boolean {

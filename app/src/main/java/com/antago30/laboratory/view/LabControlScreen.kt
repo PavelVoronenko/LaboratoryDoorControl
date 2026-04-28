@@ -176,9 +176,8 @@ fun LabControlScreen(
                             advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
                         }
                     } else {
-                        // Пользователь выключил → останавливаем рекламу
+                        // Пользователь выключил → останавливаем рекламу через ViewModel
                         viewModel.stopBleAdvertising()
-                        viewModel.toggleFunction(id)  // Обновляем тумблер
                     }
                 } else {
                     viewModel.toggleFunction(id)

@@ -67,6 +67,9 @@ class LabControlViewModel(
         // Синхронизация состояния тумблера "Вещание" с фактическим состоянием сервиса
         advertisingUseCase.onServiceStateChanged = { isRunning ->
             functionUseCase.setFunctionEnabled("broadcast", isRunning)
+            if (isRunning != settingsRepo.isAdvertisingEnabled()) {
+                settingsRepo.saveAdvertisingEnabled(isRunning)
+            }
         }
 
         @Suppress("MissingPermission")
@@ -332,15 +335,19 @@ class LabControlViewModel(
         if (getCurrentUser() == null) {
             showSystemMessage("Выберите текущего сотрудника")
             functionUseCase.setFunctionEnabled("broadcast", false)
+            settingsRepo.saveAdvertisingEnabled(false)
             return
         }
+        settingsRepo.saveAdvertisingEnabled(true)
         advertisingUseCase.start()
         // Обновляем тумблер на включено
         functionUseCase.setFunctionEnabled("broadcast", true)
     }
 
     fun stopBleAdvertising() {
+        settingsRepo.saveAdvertisingEnabled(false)
         advertisingUseCase.stop()
+        functionUseCase.setFunctionEnabled("broadcast", false)
     }
 
     fun syncServiceState() {
