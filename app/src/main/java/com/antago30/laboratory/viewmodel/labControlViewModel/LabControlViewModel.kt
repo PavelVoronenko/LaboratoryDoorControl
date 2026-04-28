@@ -140,8 +140,12 @@ class LabControlViewModel(
                     response.contains("JDE-33") ||
                     response.contains("Автоматическое")) {
                     
-                    // Очищаем сообщение от технических префиксов [W], [I], [D]
-                    val cleanMessage = response.replace(Regex("^\\[[A-Z]]\\s*"), "")
+                    // Очищаем сообщение от меток времени [HH:mm:ss] и тегов [I], [W], [D]
+                    val cleanMessage = response
+                        .replace(Regex("""^\[\d{2}:\d{2}:\d{2}]\s*"""), "") // Удаляем время
+                        .replace(Regex("""^\[[A-Z]]\s*"""), "")              // Удаляем тег типа
+                        .trim()
+
                     _controllerToastMessage.value = cleanMessage
                 }
             }
