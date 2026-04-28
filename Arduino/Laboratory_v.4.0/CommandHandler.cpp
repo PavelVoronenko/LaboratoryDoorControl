@@ -288,6 +288,12 @@ void commandHandler() {
       }
     }
 
+    // SET_VERBOSE:0/1 — управление детальным логированием
+    if (cmd.startsWith("SET_VERBOSE:")) {
+      verboseLogging = (cmd.substring(12) == "1");
+      log("Подробное логирование: " + String(verboseLogging ? "ВКЛ" : "ВЫКЛ"), LOG_INFO);
+    }
+
     rxValue = "";
   }
 }

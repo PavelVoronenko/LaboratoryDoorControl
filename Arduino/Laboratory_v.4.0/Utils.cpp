@@ -72,6 +72,7 @@ void processExitAndEntry(DevicesDetected *devDetected) {
       if (devDetected[i].name == trustedDevices[j].name) {
         // Просто фиксируем, что устройство в зоне видимости BLE
         trustedDevices[j].userTime = millis();
+        trustedDevices[j].lastRssi = devDetected[i].rssi;
       }
     }
   }
@@ -97,7 +98,7 @@ void checkEntryExitStatus() {
 
     for (int j = 0; j < trustedDevicesCount; j++) {
       // Человек подходит снаружи: он outside и его BLE недавно видели (увеличим до 15 сек)
-      if (trustedDevices[j].location == "outside" && (now - trustedDevices[j].userTime < 15000)) {
+      if (trustedDevices[j].location == "outside" && trustedDevices[j].userTime > 0 && (now - trustedDevices[j].userTime < 15000)) {
         if (!trustedDevices[j].entryInProgress && (now - trustedDevices[j].lastTransitionTime > (unsigned long)currentDoorCooldown)) {
           if (isWithinThreshold) {
             trustedDevices[j].entryInProgress = true;
@@ -106,6 +107,13 @@ void checkEntryExitStatus() {
             if (!doorOpenedThisCycle) {
               openDoor(8, "HC-SR04");
               doorOpenedThisCycle = true;
+            }
+          } else if (distance < 150) {
+            // Лог для отладки: видим BLE человека снаружи, но он еще далеко от датчика
+            static unsigned long lastOutsideLogTime = 0;
+            if (now - lastOutsideLogTime > 5000) {
+              log("DEBUG: " + trustedDevices[j].name + " на входе (" + String(distance, 2) + " см) дальше порога (" + String(currentDistanceThreshold) + " см), RSSI: " + String(trustedDevices[j].lastRssi), LOG_VERBOSE);
+              lastOutsideLogTime = now;
             }
           }
         }
@@ -121,7 +129,7 @@ void checkEntryExitStatus() {
           // Лог для отладки: видим объект, но он дальше порога
           static unsigned long lastWarnTime = 0;
           if (now - lastWarnTime > 2000) {
-            Serial.printf("DEBUG: Объект на выходе (%.2f см) дальше порога (%d см)\n", distance, currentDistanceThreshold);
+            log(trustedDevices[j].name + " на выходе (" + String(distance, 2) + " см) дальше порога (" + String(currentDistanceThreshold) + " см), RSSI: " + String(trustedDevices[j].lastRssi), LOG_VERBOSE);
             lastWarnTime = now;
           }
         }
@@ -130,11 +138,23 @@ void checkEntryExitStatus() {
   }
 
   // 2. Обработка PIR сенсора (Внутри)
+  if (!pirTriggered) {
+    for (int j = 0; j < trustedDevicesCount; j++) {
+      if (trustedDevices[j].location == "inside" && trustedDevices[j].userTime > 0 && (now - trustedDevices[j].userTime < 10000)) {
+        static unsigned long lastInsideLogTime = 0;
+        if (now - lastInsideLogTime > 5000) {
+          log(trustedDevices[j].name + " виден внутри по BLE (ожидание PIR), RSSI: " + String(trustedDevices[j].lastRssi), LOG_VERBOSE);
+          lastInsideLogTime = now;
+        }
+      }
+    }
+  }
+
   if (pirTriggered) {
     bool doorOpenedThisCycle = false;
     for (int j = 0; j < trustedDevicesCount; j++) {
       // Человек подходит изнутри: он inside и его BLE недавно видели (увеличим до 15 сек)
-      if (trustedDevices[j].location == "inside" && (now - trustedDevices[j].userTime < 15000)) {
+      if (trustedDevices[j].location == "inside" && trustedDevices[j].userTime > 0 && (now - trustedDevices[j].userTime < 15000)) {
         // Проверяем "кулдаун" после последнего перехода
         if (!trustedDevices[j].exitInProgress && (now - trustedDevices[j].lastTransitionTime > (unsigned long)currentDoorCooldown)) {
           trustedDevices[j].exitInProgress = true;
@@ -165,7 +185,6 @@ void lightSwitches(String command, String message) {
     uint8_t cmd[] = {0xA0, 0x01, 0x01, 0xA2};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
     updateAdvertising(); // Обновляем BLE рекламу
-    //log(message, LOG_INFO);
   }
   else if (jdeConnect && command == "lightOFF") {
     lightStatus = "LIGHTSTATUS:0";
@@ -173,7 +192,6 @@ void lightSwitches(String command, String message) {
     uint8_t cmd[] = {0xA0, 0x01, 0x00, 0xA1};
     pRemoteCharacteristic->writeValue(cmd, sizeof(cmd));
     updateAdvertising(); // Обновляем BLE рекламу
-    //log(message, LOG_INFO);
   } else {
     log("JDE-33 не подключен", LOG_WARN);
   }
@@ -192,9 +210,11 @@ void checkPeopleInside() {
   if (lightStatus == "LIGHTSTATUS:0" && numberOfPeopleInside == 1 && !autoLightOutside) {
     autoLightOutside = true;
     lightSwitches("lightON", "Автоматическое включение освещения");
+    log("Автоматическое включение освещения", LOG_INFO);
   } else if (numberOfPeopleInside == 0 && autoLightOutside) {
     autoLightOutside = false;
     lightSwitches("lightOFF", "Автоматическое отключение освещения");
+    log("Автоматическое включение освещения", LOG_INFO);
   }
 
   // Если статус соединения с JDY-33 изменился, обновляем рекламу

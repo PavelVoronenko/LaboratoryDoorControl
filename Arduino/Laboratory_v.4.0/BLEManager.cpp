@@ -12,7 +12,7 @@ BLERemoteCharacteristic* pRemoteCharacteristic = NULL;
 BLEScan* pBLEScan;
 
 // --- Логирование истории ---
-const int MAX_LOG_HISTORY = 500;
+const int MAX_LOG_HISTORY = 1000;
 String logHistory[MAX_LOG_HISTORY];
 int logHead = 0;
 int logCount = 0;
@@ -20,6 +20,7 @@ int logCount = 0;
 bool connected = false;
 String rxValue = "";
 bool jdeConnect = false;
+bool verboseLogging = false;
 
 DevicesDetected devicesDetected[10];
 
@@ -57,6 +58,8 @@ void addToLogHistory(String message) {
 }
 
 void log(String message, LogType type) {
+  if (type == LOG_VERBOSE && !verboseLogging) return;
+
   DateTime now = rtc.now();
   static int lastDay = -1;
 
@@ -78,6 +81,7 @@ void log(String message, LogType type) {
   if (type == LOG_DOOR) prefix = "[D] ";
   else if (type == LOG_USER) prefix = "[U] ";
   else if (type == LOG_WARN) prefix = "[W] ";
+  else if (type == LOG_VERBOSE) prefix = "[V] ";
 
   String fullMessage = timeStr + prefix + message;
 
@@ -88,8 +92,6 @@ void log(String message, LogType type) {
 }
 
 void sendLogHistoryChunked() {
-  //Serial.println("Starting fast log history sync...");
-
   // Начинаем с самого последнего (нового) лога
   int newestIndex = (logHead - 1 + MAX_LOG_HISTORY) % MAX_LOG_HISTORY;
 
@@ -106,7 +108,7 @@ void sendLogHistoryChunked() {
       String packet = "LOG_HIST:BATCH|" + buffer;
       Terminal->setValue((uint8_t*)packet.c_str(), packet.length());
       Terminal->notify();
-      delay(15); // Задержка для надежной передачи пакета
+      delay(35); // Увеличенная задержка для надежной передачи больших пакетов
       buffer = "";
     }
 
@@ -125,7 +127,6 @@ void sendLogHistoryChunked() {
   String endPacket = "LOG_HIST:END";
   Terminal->setValue((uint8_t*)endPacket.c_str(), endPacket.length());
   Terminal->notify();
-  //Serial.println("Fast log history sync complete.");
 }
 
 // ------------------ Инициализация BLE сервера ------------------
@@ -409,6 +410,7 @@ void sendUserListChunked() {
 
     pCharacteristic->setValue((uint8_t*)packet.c_str(), packet.length());
     pCharacteristic->notify();
+    delay(25); // Задержка между чанками списка пользователей
 
     position = cutPos;
     chunkIdx++;

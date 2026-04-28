@@ -28,6 +28,7 @@ class SettingsRepository(context: Context) {
         private const val LIGHTING_STATE = "lighting_state"
         private const val JDE_CONNECTION_STATE = "jde_connection_state"
         private const val ADVERTISING_ENABLED = "advertising_enabled"
+        private const val SHOW_DETAILED_LOGS = "show_detailed_logs"
     }
 
     private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
@@ -179,11 +180,6 @@ class SettingsRepository(context: Context) {
     fun getCurrentUserId(): String? =
         prefs.getString(CURRENT_USER_ID, null)
 
-    fun clearCurrentUserId() {
-        prefs.edit {
-            remove(CURRENT_USER_ID)
-        }
-    }
 
     // === Методы для сохранения выбранного UserInfo ===
 
@@ -209,13 +205,6 @@ class SettingsRepository(context: Context) {
         }
     }
 
-    fun clearCurrentUserInfo() {
-        prefs.edit {
-            remove(CURRENT_USER_INFO_JSON)
-        }
-        _currentUserIdFlow.value = null
-    }
-
     fun saveLightingState(isOn: Boolean) {
         prefs.edit { putBoolean(LIGHTING_STATE, isOn) }
     }
@@ -238,6 +227,14 @@ class SettingsRepository(context: Context) {
 
     fun isAdvertisingEnabled(): Boolean {
         return prefs.getBoolean(ADVERTISING_ENABLED, false)
+    }
+
+    fun saveShowDetailedLogs(show: Boolean) {
+        prefs.edit { putBoolean(SHOW_DETAILED_LOGS, show) }
+    }
+
+    fun isShowDetailedLogsEnabled(): Boolean {
+        return prefs.getBoolean(SHOW_DETAILED_LOGS, false)
     }
 
     // Методы для кэширования UserInfo от контроллера

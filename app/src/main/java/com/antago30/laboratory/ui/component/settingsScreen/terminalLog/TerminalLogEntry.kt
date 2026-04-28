@@ -10,6 +10,7 @@ enum class LogType {
     DOOR,    // Открытие/закрытие двери
     USER,    // Действия пользователей
     WARNING, // Предупреждения
+    DETAILED, // Подробное логирование (скрытое по умолчанию)
     DATE_HEADER // Заголовок даты
 }
 
@@ -29,6 +30,7 @@ data class TerminalLogEntry(
     fun getMessageColor(): Color = when (type) {
         LogType.WARNING -> Color(0xFFF56565)
         LogType.USER -> Color(0xFF4FC3F7)
+        LogType.DETAILED -> Color(0xFFA0AEC0).copy(alpha = 0.6f)
         else -> Color(0xFF70A0F1).copy(alpha = 0.75f)
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -56,9 +57,12 @@ fun SettingsHeader(
     onBleDeviceClick: () -> Unit = {},
     onReconnectJde: () -> Unit = {},
     onDebugClick: () -> Unit = {},
+    onDetailedLogsClick: () -> Unit = {},
     showBackButton: Boolean = false,
     showBleButton: Boolean = true,
     showJdeButton: Boolean = true,
+    showDetailedLogsButton: Boolean = false,
+    isDetailedLogsEnabled: Boolean = false,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     isJdeConnected: Boolean = false
 ) {
@@ -66,10 +70,12 @@ fun SettingsHeader(
     var backScale by remember { mutableFloatStateOf(1f) }
     var bleScale by remember { mutableFloatStateOf(1f) }
     var refreshScale by remember { mutableFloatStateOf(1f) }
+    var detailedLogsScale by remember { mutableFloatStateOf(1f) }
 
     val animatedBackScale by animateFloatAsState(targetValue = backScale, label = "")
     val animatedBleScale by animateFloatAsState(targetValue = bleScale, label = "")
     val animatedRefreshScale by animateFloatAsState(targetValue = refreshScale, label = "")
+    val animatedDetailedLogsScale by animateFloatAsState(targetValue = detailedLogsScale, label = "")
 
     val isConnected = connectionState == ConnectionState.READY
 
@@ -167,6 +173,36 @@ fun SettingsHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            // Кнопка подробного логирования
+            if (showDetailedLogsButton) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .scale(animatedDetailedLogsScale)
+                        .clip(CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = Primary, bounded = false),
+                            onClick = {
+                                detailedLogsScale = 0.85f
+                                scope.launch {
+                                    delay(100)
+                                    detailedLogsScale = 1f
+                                    onDetailedLogsClick()
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Terminal,
+                        contentDescription = "Подробное логирование",
+                        tint = if (isDetailedLogsEnabled) Primary else Primary.copy(alpha = 0.25f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
             // Кнопка переподключения освещения (только если НЕ подключено и разрешено)
             if (!isJdeConnected && showJdeButton) {
                 Box(

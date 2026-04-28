@@ -26,6 +26,9 @@ import com.antago30.laboratory.ui.component.settingsScreen.terminalLog.TerminalL
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -38,7 +41,7 @@ class SettingsScreenViewModel(
 
     companion object {
         private val TIME_REGEX = Regex("""\[(\d{2}:\d{2}:\d{2})]""")
-        private val TYPE_REGEX = Regex("""\[([IDWU])]""")
+        private val TYPE_REGEX = Regex("""\[([IDWUV])]""")
         private val QUOTE_REGEX = Regex("'([^']+)'")
         private val NAME_REGEX = Regex("^([А-ЯЁ][а-яё]+\\s[А-ЯЁ][а-яё]+|^[А-ЯЁ][а-яё]+)")
         private val TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss")
@@ -53,8 +56,14 @@ class SettingsScreenViewModel(
     private val _selectedDeviceAddress = MutableStateFlow(settingsRepo.getSelectedDeviceAddress())
     val selectedDeviceAddress: StateFlow<String?> = _selectedDeviceAddress.asStateFlow()
 
-    private val _terminalLogs = MutableStateFlow<List<TerminalLogEntry>>(emptyList())
-    val terminalLogs: StateFlow<List<TerminalLogEntry>> = _terminalLogs.asStateFlow()
+    private val _allTerminalLogs = MutableStateFlow<List<TerminalLogEntry>>(emptyList())
+    
+    private val _showDetailedLogs = MutableStateFlow(settingsRepo.isShowDetailedLogsEnabled())
+    val showDetailedLogs: StateFlow<Boolean> = _showDetailedLogs.asStateFlow()
+
+    val terminalLogs: StateFlow<List<TerminalLogEntry>> = combine(_allTerminalLogs, _showDetailedLogs) { logs, showDetailed ->
+        if (showDetailed) logs else logs.filter { it.type != LogType.DETAILED }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _isTerminalActive = MutableStateFlow(false)
     val isTerminalActive: StateFlow<Boolean> = _isTerminalActive.asStateFlow()
@@ -242,6 +251,7 @@ class SettingsScreenViewModel(
             typeChar == "D" -> LogType.DOOR
             typeChar == "W" -> LogType.WARNING
             typeChar == "U" -> LogType.USER
+            typeChar == "V" -> LogType.DETAILED
             else -> LogType.INFO
         }
 
@@ -290,11 +300,11 @@ class SettingsScreenViewModel(
 
                 if (rawMessage.startsWith("LOG_HIST:")) {
                     handleHistoryLog(rawMessage)
-                } else {
+                } else if (rawMessage.isNotEmpty()) {
                     val lines = rawMessage.split("\n").filter { it.isNotBlank() }
                     val newEntries = lines.map { parseLogEntry(it) }
                     
-                    _terminalLogs.update { (newEntries + it).take(MAX_LOGS) }
+                    _allTerminalLogs.update { (newEntries + it).take(MAX_LOGS) }
                 }
             }
         }
@@ -303,7 +313,7 @@ class SettingsScreenViewModel(
     fun stopTerminalObservation() {
         terminalObservationJob?.cancel()
         terminalObservationJob = null
-        _terminalLogs.value = emptyList()
+        _allTerminalLogs.value = emptyList()
     }
 
     private fun handleHistoryLog(raw: String) {
@@ -326,7 +336,7 @@ class SettingsScreenViewModel(
                 // ИСТОРИЯ добавляется В КОНЕЦ текущего списка логов.
                 // Теперь контроллер шлет логи от новых к старым (Newest -> Oldest),
                 // поэтому просто добавляем их в хвост для соблюдения хронологии.
-                _terminalLogs.update { (it + newEntries).take(MAX_LOGS) }
+                _allTerminalLogs.update { (it + newEntries).take(MAX_LOGS) }
             }
         } catch (e: Exception) {
             Log.e("SettingsViewModel", "Error parsing history log: $raw", e)
@@ -336,7 +346,7 @@ class SettingsScreenViewModel(
     @Suppress("MissingPermission")
     fun requestLogHistory() {
         startTerminalObservation() // Убеждаемся, что наблюдение запущено
-        _terminalLogs.value = emptyList()
+        _allTerminalLogs.value = emptyList()
         isHistoryLoading = true
         
         historyTimeoutJob?.cancel()
@@ -438,7 +448,21 @@ class SettingsScreenViewModel(
     }
 
     fun clearLogs() {
-        _terminalLogs.value = emptyList()
+        _allTerminalLogs.value = emptyList()
+    }
+
+    @Suppress("MissingPermission")
+    fun toggleDetailedLogs(enabled: Boolean) {
+        settingsRepo.saveShowDetailedLogs(enabled)
+        _showDetailedLogs.value = enabled
+        
+        // Отправляем команду на контроллер
+        viewModelScope.launch {
+            if (connectionManager.connectionStateFlow.value == com.antago30.laboratory.model.ConnectionState.READY) {
+                val cmd = if (enabled) "SET_VERBOSE:1" else "SET_VERBOSE:0"
+                connectionManager.sendCommand(cmd)
+            }
+        }
     }
 
     private fun loadSavedDevice() {

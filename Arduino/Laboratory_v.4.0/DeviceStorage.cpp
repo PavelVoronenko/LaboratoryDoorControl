@@ -51,6 +51,7 @@ int loadTrustedDevices(TrustedDevice* outArray, int maxSize) {
       // Runtime-поля
       outArray[count].location = "inside";
       outArray[count].userTime = 0;
+      outArray[count].lastRssi = 0;
       outArray[count].processStartTime = 0;
       outArray[count].lastTransitionTime = 0;
       outArray[count].entryInProgress = false;

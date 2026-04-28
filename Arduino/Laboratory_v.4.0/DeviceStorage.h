@@ -26,6 +26,7 @@ struct TrustedDevice {
   String location; // "inside" или "outside"
   int rssiThresholdEntry;
   int rssiThresholdExit;
+  int lastRssi;
   uint64_t userTime;
   uint64_t processStartTime;
   uint64_t lastTransitionTime;

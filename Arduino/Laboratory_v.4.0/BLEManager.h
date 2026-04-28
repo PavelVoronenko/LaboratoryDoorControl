@@ -33,6 +33,7 @@ extern BLERemoteCharacteristic* pRemoteCharacteristic;
 
 extern bool connected;
 extern bool jdeConnect;
+extern bool verboseLogging;
 extern String rxValue;
 extern String lightStatus;
 extern bool autoLightOutside;
@@ -52,10 +53,11 @@ void scanForTrustedDevices();
 
 // ------------------ Отправка уведомлений через терминал ------------------
 enum LogType {
-    LOG_INFO,   // [I] Системные сообщения (подключение/отключение)
-    LOG_DOOR,   // [D] Двери (открытие/закрытие)
-    LOG_USER,   // [U] Пользователи (вход/выход)
-    LOG_WARN    // [W] Предупреждения/ошибки
+    LOG_INFO,    // [I] Системные сообщения (подключение/отключение)
+    LOG_DOOR,    // [D] Двери (открытие/закрытие)
+    LOG_USER,    // [U] Пользователи (вход/выход)
+    LOG_WARN,    // [W] Предупреждения/ошибки
+    LOG_VERBOSE  // [V] Подробное логирование
 };
 void log(String message, LogType type = LOG_INFO);
 

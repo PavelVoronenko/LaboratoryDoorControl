@@ -25,12 +25,11 @@ void setup() {
 
   // Инициализация RTC DS3231
   if (!rtc.begin()) {
-    Serial.println("Не удалось найти RTC");
+    log("Не удалось найти RTC", LOG_VERBOSE);
   }
   if (rtc.lostPower()) {
-    Serial.println("RTC потерял питание, установите время!");
+    log("RTC потерял питание, установите время!", LOG_VERBOSE);
     batteryWarning = true;
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Установка времени компиляции
   }
 
   // Загрузка порога расстояния
@@ -58,11 +57,11 @@ void setup() {
 
   // Попытка подключиться к JDY-33
   if (scanAndConnect()) {
-    Serial.println("Подключение к JDY-33 успешно");
+    log("Подключение к JDY-33 успешно", LOG_VERBOSE);
     jdeConnect = true;
     connected = true;
   } else {
-    Serial.println("Подключение к JDY-33 не удалось");
+    log("Подключение к JDY-33 не удалось", LOG_VERBOSE);
     jdeConnect = false;
   }
 
@@ -135,7 +134,7 @@ void Task2code(void * pvParameters) {
         if (millis() - trustedDevices[i].processStartTime > 10000) {
           trustedDevices[i].entryInProgress = false;
           trustedDevices[i].exitInProgress = false;
-          log(trustedDevices[i].name + " таймаут перехода", LOG_WARN);
+          log(trustedDevices[i].name + " таймаут перехода", LOG_VERBOSE);
         }
       }
     }

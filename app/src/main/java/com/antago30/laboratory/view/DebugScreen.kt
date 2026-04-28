@@ -92,6 +92,7 @@ fun DebugScreen(
     val rtcTime by viewModel.debugRtcTime.collectAsState()
     val temperature by viewModel.debugTemperature.collectAsState()
     val isBatteryOk by viewModel.isBatteryOk.collectAsState()
+    val showDetailedLogs by viewModel.showDetailedLogs.collectAsState()
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
     
     val isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
@@ -194,7 +195,10 @@ fun DebugScreen(
                 onBack = onBack,
                 showBackButton = false,
                 showBleButton = false,
-                showJdeButton = false
+                showJdeButton = false,
+                showDetailedLogsButton = true,
+                isDetailedLogsEnabled = showDetailedLogs,
+                onDetailedLogsClick = { viewModel.toggleDetailedLogs(!showDetailedLogs) }
             )
         }
     ) { padding ->
