@@ -1,20 +1,29 @@
 package com.antago30.laboratory.view
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,15 +32,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,17 +71,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.antago30.laboratory.ui.component.settingsScreen.SettingsHeader
+import com.antago30.laboratory.ui.theme.CardBg
 import com.antago30.laboratory.ui.theme.Primary
+import com.antago30.laboratory.ui.theme.TextMuted
 import com.antago30.laboratory.viewmodel.settingsScreenViewModel.SettingsScreenViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,7 +121,12 @@ fun DebugScreen(
     val showDetailedLogs by viewModel.showDetailedLogs.collectAsState()
     val bleConnectionState by connectionManager.connectionStateFlow.collectAsState()
     
+    val savedSsid by viewModel.wifiSsid.collectAsState()
+    val savedPassword by viewModel.wifiPassword.collectAsState()
+
     val isEnabled = bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY
+
+    var showOtaDialog by remember { mutableStateOf(false) }
 
     val contentAlpha by animateFloatAsState(
         targetValue = if (isEnabled) 1f else 0.4f,
@@ -174,8 +204,8 @@ fun DebugScreen(
         }
     }
     
-    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
-    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(bleConnectionState) {
         if (bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY) {
@@ -198,11 +228,30 @@ fun DebugScreen(
                 showBleButton = false,
                 showJdeButton = false,
                 showDetailedLogsButton = true,
+                showWifiOtaButton = true,
                 isDetailedLogsEnabled = showDetailedLogs,
-                onDetailedLogsClick = { viewModel.toggleDetailedLogs(!showDetailedLogs) }
+                onDetailedLogsClick = { viewModel.toggleDetailedLogs(!showDetailedLogs) },
+                onWifiOtaClick = { showOtaDialog = true },
+                connectionState = bleConnectionState
             )
         }
     ) { padding ->
+        if (showOtaDialog) {
+            WifiOtaDialog(
+                initialSsid = savedSsid,
+                initialPassword = savedPassword,
+                onDismiss = { showOtaDialog = false },
+                onConfirm = { ssid, password ->
+                    showOtaDialog = false
+                    viewModel.saveWifiSettings(ssid, password)
+                    viewModel.startWifiOta(ssid, password)
+                },
+                onConfirmCurrent = {
+                    showOtaDialog = false
+                    viewModel.startWifiOta()
+                }
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -380,6 +429,7 @@ fun DebugScreen(
                                 }
 
                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    val isTriggered = (realDistance <= currentThreshold) && (realDistance > 0.1f)
                                     InfoBox(
                                         label = "Distance",
                                         value = "%.1f".format(realDistance),
@@ -388,15 +438,9 @@ fun DebugScreen(
                                         modifier = Modifier.weight(1f)
                                     )
 
-                                    val isTriggered = realDistance <= currentThreshold && realDistance > 0.1f
-                                    val thresholdColor by animateColorAsState(
-                                        targetValue = if (isTriggered) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
-                                        label = "thresholdHighlight"
-                                    )
-
                                     InfoBox(
                                         label = "Threshold",
-                                        value = "$currentThreshold",
+                                        value = currentThreshold.toString(),
                                         unit = "cm",
                                         color = if (isTriggered) Color(0xFF4CAF50) else Color(0xFF94A3B8), // Используем холодный серый
                                         modifier = Modifier.weight(1f)
@@ -677,65 +721,268 @@ fun DebugScreen(
                             Spacer(Modifier.width(12.dp))
                             Text(
                                 text = "REBOOT",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 4.sp,
+                                style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.error
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
 
-                // WiFi OTA Button
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun WifiOtaDialog(
+    initialSsid: String,
+    initialPassword: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit,
+    onConfirmCurrent: () -> Unit
+) {
+    var ssid by remember { mutableStateOf(initialSsid) }
+    var password by remember { mutableStateOf(initialPassword) }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var isEditing by remember { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+
+    val scrimAlpha by animateFloatAsState(
+        targetValue = if (isVisible) 0.6f else 0f,
+        animationSpec = tween(durationMillis = 200),
+        label = "scrimAlpha"
+    )
+
+    val animateOutAndDismiss = {
+        isVisible = false
+    }
+
+    LaunchedEffect(isVisible) {
+        if (!isVisible) {
+            kotlinx.coroutines.delay(200)
+            onDismiss()
+        }
+    }
+
+    Dialog(
+        onDismissRequest = animateOutAndDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = scrimAlpha))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { animateOutAndDismiss() }
+        ) {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(animationSpec = tween(200)) + scaleIn(
+                    initialScale = 0.9f,
+                    animationSpec = tween(200)
+                ),
+                exit = fadeOut(animationSpec = tween(150)) + scaleOut(
+                    targetScale = 0.9f,
+                    animationSpec = tween(150)
+                ),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .imePadding()
+            ) {
                 Surface(
-                    onClick = { viewModel.startWifiOta() },
-                    enabled = isEnabled,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .graphicsLayer { alpha = contentAlpha },
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.Transparent,
-                    border = BorderStroke(
-                        width = 1.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(
-                                Primary.copy(alpha = 0.7f),
-                                Primary.copy(alpha = 0.1f),
-                                Primary.copy(alpha = 0.7f)
-                            )
+                        .fillMaxWidth(0.90f)
+                        .shadow(
+                            elevation = 24.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            spotColor = Primary.copy(alpha = 0.15f)
                         )
-                    )
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable(enabled = false) { },
+                    shape = RoundedCornerShape(24.dp),
+                    color = CardBg.copy(alpha = 0.95f),
+                    border = BorderStroke(1.dp, Primary.copy(alpha = 0.15f)),
                 ) {
-                    Box(
-                        modifier = Modifier.background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Primary.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                )
-                            )
-                        ),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        // Заголовок
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Wifi,
-                                contentDescription = null,
-                                tint = Primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                Primary.copy(alpha = 0.3f),
+                                                Primary.copy(alpha = 0.15f)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    tint = Primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "OTA Update",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = Primary
+                                )
+                                Text(
+                                    text = if (isEditing) "Настройка Wi-Fi" else "Обновление прошивки",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+
+                        // Разделитель
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Primary.copy(alpha = 0.08f))
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (!isEditing) {
                             Text(
-                                text = "WIFI OTA",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 4.sp,
-                                color = Primary
+                                "Контроллер будет перезагружен для перехода в режим прошивки по Wi-Fi. \nУбедитесь, что устройство находится в зоне действия сети.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextMuted,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp)
                             )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Surface(
+                                color = Primary.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(16.dp),
+                                border = BorderStroke(1.dp, Primary.copy(alpha = 0.1f)),
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(Icons.Default.Wifi, null, tint = Primary, modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        text = initialSsid.ifBlank { "Не задана" },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Primary
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = ssid,
+                                    onValueChange = { ssid = it },
+                                    label = { Text("SSID") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Wifi, null, tint = Primary) },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Primary,
+                                        unfocusedBorderColor = Primary.copy(alpha = 0.2f)
+                                    )
+                                )
+
+                                OutlinedTextField(
+                                    value = password,
+                                    onValueChange = { password = it },
+                                    label = { Text("Пароль") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                    trailingIcon = {
+                                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                            Icon(
+                                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                                contentDescription = null,
+                                                tint = Primary.copy(alpha = 0.6f)
+                                            )
+                                        }
+                                    },
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Primary,
+                                        unfocusedBorderColor = Primary.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
+                        }
+
+                        // Кнопки
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // Левая кнопка: Настройки или Назад
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { isEditing = !isEditing },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                contentPadding = PaddingValues(0.dp),
+                                border = BorderStroke(1.dp, Primary.copy(alpha = 0.2f))
+                            ) {
+                                Icon(
+                                    imageVector = if (isEditing) Icons.AutoMirrored.Filled.ArrowBack else Icons.Default.Settings,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = if (isEditing) TextMuted else Primary
+                                )
+                            }
+
+                            // Правая кнопка: Старт OTA или Сохранить
+                            Button(
+                                onClick = { if (isEditing) onConfirm(ssid, password) else onConfirmCurrent() },
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                enabled = !isEditing || ssid.isNotBlank(),
+                                contentPadding = PaddingValues(0.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            ) {
+                                Icon(
+                                    imageVector = if (isEditing) Icons.Default.Done else Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                            }
                         }
                     }
                 }

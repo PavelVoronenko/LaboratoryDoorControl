@@ -300,6 +300,18 @@ void commandHandler() {
       log("Подробное логирование: " + String(verboseLogging ? "ВКЛ" : "ВЫКЛ"), LOG_INFO);
     }
 
+    // SETWIFI:ssid|password
+    if (cmd.startsWith("SETWIFI:")) {
+      String params = cmd.substring(8);
+      int pipeIndex = params.indexOf('|');
+      if (pipeIndex != -1) {
+        String ssid = params.substring(0, pipeIndex);
+        String pass = params.substring(pipeIndex + 1);
+        saveWifiSettings(ssid, pass);
+        log("Настройки WiFi сохранены: " + ssid, LOG_INFO);
+      }
+    }
+
     rxValue = "";
   }
 }

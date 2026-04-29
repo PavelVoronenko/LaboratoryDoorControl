@@ -69,6 +69,11 @@ int loadDoorCooldown();
 void setOtaBootFlag(bool status);
 bool getOtaBootFlag();
 
+// ------------------ Управление WiFi настройками ------------------
+void saveWifiSettings(String ssid, String pass);
+String loadWifiSsid();
+String loadWifiPass();
+
 // Глобальные переменные
 extern Preferences usersPrefs;
 extern TrustedDevice trustedDevices[];

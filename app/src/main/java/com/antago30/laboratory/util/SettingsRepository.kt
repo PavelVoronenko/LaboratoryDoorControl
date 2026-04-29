@@ -29,6 +29,8 @@ class SettingsRepository(context: Context) {
         private const val JDE_CONNECTION_STATE = "jde_connection_state"
         private const val ADVERTISING_ENABLED = "advertising_enabled"
         private const val SHOW_DETAILED_LOGS = "show_detailed_logs"
+        private const val WIFI_SSID = "wifi_ssid"
+        private const val WIFI_PASSWORD = "wifi_password"
     }
 
     private val _currentUserIdFlow = MutableStateFlow(getCurrentUserId())
@@ -236,6 +238,16 @@ class SettingsRepository(context: Context) {
     fun isShowDetailedLogsEnabled(): Boolean {
         return prefs.getBoolean(SHOW_DETAILED_LOGS, false)
     }
+
+    fun saveWifiSettings(ssid: String, password: String) {
+        prefs.edit {
+            putString(WIFI_SSID, ssid)
+            putString(WIFI_PASSWORD, password)
+        }
+    }
+
+    fun getWifiSsid(): String = prefs.getString(WIFI_SSID, "") ?: ""
+    fun getWifiPassword(): String = prefs.getString(WIFI_PASSWORD, "") ?: ""
 
     // Методы для кэширования UserInfo от контроллера
     fun saveCachedUserInfoList(list: List<UserInfo>) {

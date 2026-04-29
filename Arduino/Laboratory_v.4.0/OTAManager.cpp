@@ -25,7 +25,7 @@ const char* updateServerIndex = R"rawliteral(
     <title>Lab Update</title>
     <style>
         body { background: #0F172A; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #1E293B; padding: 2.5rem; border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); width: 90%; max-width: 400px; text-align: center; border: 1px solid #334155; }
+        .card { background: #1E293B; padding: 2.5rem; border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); width: 90%; max-width: 400px; text-align: center; border: 1px solid #334155; position: relative; }
         h2 { color: #38BDF8; margin-bottom: 0.5rem; font-size: 1.5rem; }
         p { color: #94A3B8; margin-bottom: 2rem; font-size: 0.9rem; }
         .file-label { display: block; background: #0F172A; padding: 1rem; border-radius: 0.75rem; border: 1px solid #334155; color: #94A3B8; cursor: pointer; transition: all 0.2s; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 1.5rem; }
@@ -34,6 +34,10 @@ const char* updateServerIndex = R"rawliteral(
         #btn { background: #38BDF8; color: #0F172A; border: none; padding: 1rem; border-radius: 0.75rem; cursor: pointer; font-size: 1rem; font-weight: bold; width: 100%; transition: all 0.2s; }
         #btn:hover { background: #7DD3FC; transform: translateY(-1px); }
         #btn:disabled { background: #334155; color: #475569; cursor: not-allowed; transform: none; }
+        #reboot-btn { background: #F87171; color: #0F172A; border: none; padding: 0.6rem 0.8rem; border-radius: 0.75rem; cursor: pointer; position: absolute; bottom: 0.8rem; right: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 15px rgba(248, 113, 113, 0.4); }
+        #reboot-btn:hover { background: #EF4444; color: white; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(248, 113, 113, 0.5); }
+        #reboot-btn svg { width: 1.2rem; height: 1.2rem; stroke-width: 3; }
+        #reboot-btn span { font-weight: bold; font-size: 0.7rem; letter-spacing: 0.05em; }
         .progress-area { display: none; margin-top: 1rem; }
         .progress-bar { background: #0F172A; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 10px; border: 1px solid #334155; }
         .progress-fill { background: #38BDF8; height: 100%; width: 0%; transition: width 0.2s; }
@@ -54,6 +58,10 @@ const char* updateServerIndex = R"rawliteral(
                 <input type='file' id='file-input' accept='.bin' onchange='document.getElementById("fname").innerHTML = this.files[0].name'>
             </label>
             <button id='btn' onclick='uploadFile()'>DOWNLOAD AND FLASH</button>
+            <button id='reboot-btn' onclick='rebootDevice()' title='Reboot Controller'>
+                <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M23 4v6h-6'></path><path d='M20.49 15a9 9 0 1 1-2.12-9.36L23 10'></path></svg>
+                <span>REBOOT</span>
+            </button>
             <div class='progress-area' id='prg-area'>
                 <div class='progress-bar'><div class='progress-fill' id='prg-fill'></div></div>
                 <div class='status-text' id='stat'>Uploading... 0%</div>
@@ -70,8 +78,8 @@ const char* updateServerIndex = R"rawliteral(
         <div id='error-msg'>
             <div class='error-icon'>✕</div>
             <h2 style='color: #F87171'>UPDATE FAILED</h2>
-            <p id='err-desc'>Unknown error occurred</p>
-            <button id='btn' style='background: #334155; color: white' onclick='location.reload()'>TRY AGAIN</button>
+            <p>There was a problem with the update.<br>The controller is restarting in normal mode.</p>
+            <p id='err-desc' style='font-size: 0.7rem; color: #64748b; margin-top: 1rem;'></p>
         </div>
 
         <div class='footer'>ESP32 OTA SYSTEM v4.0</div>
@@ -119,6 +127,16 @@ const char* updateServerIndex = R"rawliteral(
             document.getElementById('error-msg').style.display = 'block';
             document.getElementById('err-desc').innerHTML = msg;
         }
+
+        function rebootDevice() {
+            if (!confirm('Are you sure you want to reboot the controller?')) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/reboot', true);
+            xhr.send();
+            document.getElementById('upload-form').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
+            document.getElementById('success-msg').innerHTML = "<div class='success-icon'>🔄</div><h2>REBOOTING...</h2><p>The controller is restarting.<br>Please wait 10 seconds.</p>";
+        }
     </script>
 </body>
 </html>
@@ -136,9 +154,12 @@ void setupOtaInBoot() {
 
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
-    WiFi.begin(ssid, password);
 
-    Serial.print("Connecting to Wi-Fi");
+    String savedSsid = loadWifiSsid();
+    String savedPass = loadWifiPass();
+    WiFi.begin(savedSsid.c_str(), savedPass.c_str());
+
+    Serial.print("Connecting to Wi-Fi: " + savedSsid);
     int retry = 0;
     while (WiFi.status() != WL_CONNECTED && retry < 30) {
         delay(500);
@@ -148,6 +169,10 @@ void setupOtaInBoot() {
 
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nConnected! IP: " + WiFi.localIP().toString());
+    } else {
+        Serial.println("\nFailed to connect to Wi-Fi. Rebooting to normal mode...");
+        delay(2000);
+        ESP.restart();
     }
 
     // Настройка Web-сервера для прошивки
@@ -180,28 +205,56 @@ void setupOtaInBoot() {
         }
     });
 
+    server.on("/reboot", HTTP_GET, []() {
+        server.send(200, "text/plain", "OK. Rebooting...");
+        delay(500);
+        ESP.restart();
+    });
+
     server.begin();
 
-    // Запуск NetBIOS для доступа по имени http://LABORATORY
+    // Запуск NetBIOS для доступа по имени http://LAB
     NBNS.begin("LAB");
-    Serial.println("NetBIOS started: http://LABORATORY");
+    Serial.println("NetBIOS started: http://LAB");
 
     Serial.println("Web Update Server ready at http://" + WiFi.localIP().toString());
 }
 
 void handleOta() {
     if (otaModeActive) {
+        static int reconnectAttempts = 0;
+        static unsigned long lastReconnectAttempt = 0;
+
+        if (WiFi.status() != WL_CONNECTED) {
+            unsigned long now = millis();
+            if (now - lastReconnectAttempt > 5000) {
+                lastReconnectAttempt = now;
+                reconnectAttempts++;
+                Serial.printf("Потеряно соединение Wi-Fi. Попытка переподключения %d из 5...\n", reconnectAttempts);
+
+                if (reconnectAttempts > 5) {
+                    Serial.println("Не удалось восстановить связь. Возврат в нормальный режим...");
+                    delay(1000);
+                    ESP.restart();
+                }
+
+                WiFi.disconnect();
+                String ssid = loadWifiSsid();
+                String pass = loadWifiPass();
+                WiFi.begin(ssid.c_str(), pass.c_str());
+            }
+            return;
+        } else {
+            reconnectAttempts = 0; // Сброс при успешном соединении
+        }
+
         server.handleClient(); // Обслуживаем Web-сервер
 
         static unsigned long lastCheck = 0;
         if (millis() - lastCheck > 5000) {
             lastCheck = millis();
-            if (WiFi.status() == WL_CONNECTED) {
-                Serial.print("Web Update Ready! IP: ");
-                Serial.println(WiFi.localIP());
-            } else {
-                Serial.println("Wi-Fi connecting...");
-            }
+            Serial.print("Web Update Ready! IP: ");
+            Serial.println(WiFi.localIP());
         }
     }
 }

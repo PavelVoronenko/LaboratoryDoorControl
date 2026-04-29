@@ -92,6 +92,12 @@ class SettingsScreenViewModel(
     private val _isBatteryOk = MutableStateFlow(true)
     val isBatteryOk: StateFlow<Boolean> = _isBatteryOk.asStateFlow()
 
+    private val _wifiSsid = MutableStateFlow(settingsRepo.getWifiSsid())
+    val wifiSsid: StateFlow<String> = _wifiSsid.asStateFlow()
+
+    private val _wifiPassword = MutableStateFlow(settingsRepo.getWifiPassword())
+    val wifiPassword: StateFlow<String> = _wifiPassword.asStateFlow()
+
     // === Буфер для сборки чанков USERLIST ===
     private val userListChunks = mutableMapOf<Int, String>()
     private var userListTotalChunks = 0
@@ -423,9 +429,26 @@ class SettingsScreenViewModel(
         }
     }
 
+    fun saveWifiSettings(ssid: String, password: String) {
+        settingsRepo.saveWifiSettings(ssid, password)
+        _wifiSsid.value = ssid
+        _wifiPassword.value = password
+    }
+
     @Suppress("MissingPermission")
-    fun startWifiOta() {
+    fun startWifiOta(ssid: String? = null, password: String? = null) {
         viewModelScope.launch {
+            val finalSsid = ssid ?: _wifiSsid.value
+            val finalPassword = password ?: _wifiPassword.value
+
+            if (finalSsid.isNotBlank()) {
+                // Отправляем настройки WiFi контроллеру
+                // Формат: SETWIFI:ssid|password
+                connectionManager.sendCommand("SETWIFI:$finalSsid|$finalPassword")
+                delay(800) // Увеличим задержку, чтобы контроллер успел сохранить данные в NVS
+            }
+            
+            // Даем команду на перезагрузку в режим OTA
             connectionManager.sendCommand("START_WIFI_OTA")
         }
     }

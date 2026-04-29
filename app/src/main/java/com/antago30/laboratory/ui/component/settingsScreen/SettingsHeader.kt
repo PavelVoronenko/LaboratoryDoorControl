@@ -18,7 +18,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.BluetoothConnected
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,10 +60,12 @@ fun SettingsHeader(
     onReconnectJde: () -> Unit = {},
     onDebugClick: () -> Unit = {},
     onDetailedLogsClick: () -> Unit = {},
+    onWifiOtaClick: () -> Unit = {},
     showBackButton: Boolean = false,
     showBleButton: Boolean = true,
     showJdeButton: Boolean = true,
     showDetailedLogsButton: Boolean = false,
+    showWifiOtaButton: Boolean = false,
     isDetailedLogsEnabled: Boolean = false,
     connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     isJdeConnected: Boolean = false
@@ -71,11 +75,13 @@ fun SettingsHeader(
     var bleScale by remember { mutableFloatStateOf(1f) }
     var refreshScale by remember { mutableFloatStateOf(1f) }
     var detailedLogsScale by remember { mutableFloatStateOf(1f) }
+    var wifiOtaScale by remember { mutableFloatStateOf(1f) }
 
     val animatedBackScale by animateFloatAsState(targetValue = backScale, label = "")
     val animatedBleScale by animateFloatAsState(targetValue = bleScale, label = "")
     val animatedRefreshScale by animateFloatAsState(targetValue = refreshScale, label = "")
     val animatedDetailedLogsScale by animateFloatAsState(targetValue = detailedLogsScale, label = "")
+    val animatedWifiOtaScale by animateFloatAsState(targetValue = wifiOtaScale, label = "")
 
     val isConnected = connectionState == ConnectionState.READY
 
@@ -173,6 +179,37 @@ fun SettingsHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            // Кнопка WiFi OTA
+            if (showWifiOtaButton) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .scale(animatedWifiOtaScale)
+                        .clip(CircleShape)
+                        .clickable(
+                            enabled = isConnected,
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = ripple(color = Primary, bounded = false),
+                            onClick = {
+                                wifiOtaScale = 0.85f
+                                scope.launch {
+                                    delay(100)
+                                    wifiOtaScale = 1f
+                                    onWifiOtaClick()
+                                }
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDownload,
+                        contentDescription = "WiFi OTA",
+                        tint = if (isConnected) Primary else Primary.copy(alpha = 0.25f),
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
             // Кнопка подробного логирования
             if (showDetailedLogsButton) {
                 Box(

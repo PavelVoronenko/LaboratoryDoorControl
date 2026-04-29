@@ -169,3 +169,17 @@ void setOtaBootFlag(bool status) {
 bool getOtaBootFlag() {
   return usersPrefs.getBool("ota_boot", false);
 }
+
+// ------------------ Управление WiFi настройками ------------------
+void saveWifiSettings(String ssid, String pass) {
+  usersPrefs.putString("wifi_ssid", ssid);
+  usersPrefs.putString("wifi_pass", pass);
+}
+
+String loadWifiSsid() {
+  return usersPrefs.getString("wifi_ssid", "antago");
+}
+
+String loadWifiPass() {
+  return usersPrefs.getString("wifi_pass", "98798701");
+}
