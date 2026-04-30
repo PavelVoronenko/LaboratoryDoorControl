@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
         val settingsFactory = SettingsScreenViewModelFactory(
             settingsRepo = settingsRepo,
             connectionManager = connectionManager,
-            functionUseCase = labControlFactory.functionUseCase
+            functionUseCase = labControlViewModel.functionUseCase
         )
         settingsScreenViewModel = ViewModelProvider(this, settingsFactory)[SettingsScreenViewModel::class.java]
         settingsScreenViewModel.setAppContext(applicationContext)

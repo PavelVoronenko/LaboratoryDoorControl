@@ -15,9 +15,6 @@ class LabControlViewModelFactory(
     private val settingsRepo: SettingsRepository
 ) : ViewModelProvider.Factory {
 
-    lateinit var functionUseCase: FunctionControlUseCase
-        private set
-
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(LabControlViewModel::class.java)) {
@@ -42,7 +39,6 @@ class LabControlViewModelFactory(
                     FunctionItem("lighting", "💡 Освещение", false, requiresConnection = true)
                 )
             )
-            this.functionUseCase = fUseCase
 
             val parsingUseCase = BleDataParsingUseCase(
                 staffUseCase = staffUseCase,

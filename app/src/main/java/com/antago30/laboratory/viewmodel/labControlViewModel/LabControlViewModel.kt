@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets
 class LabControlViewModel(
     private val connectionManager: BleConnectionManager,
     private val staffUseCase: StaffStatusUseCase,
-    private val functionUseCase: FunctionControlUseCase,
+    val functionUseCase: FunctionControlUseCase,
     private val parsingUseCase: BleDataParsingUseCase,
     private val advertisingUseCase: AdvertisingServiceUseCase,
     private val settingsRepo: SettingsRepository
