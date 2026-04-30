@@ -37,20 +37,6 @@ class BleConnectionManager(
 ) {
     private val context = context.applicationContext
 
-    init {
-        // Если это главный экземпляр приложения, сохраняем его для виджета
-        if (isMainInstance) {
-            activeInstance = this
-        }
-
-        // Подписываем обработчик списка пользователей на обновления
-        coroutineScope.launch {
-            callbackHandler.characteristicUpdates.collect { data ->
-                userListHandler.handleData(data)
-            }
-        }
-    }
-
     // UUIDs
     companion object {
         val SERVICE_UUID: UUID = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb")
@@ -96,6 +82,30 @@ class BleConnectionManager(
     val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
     val terminalData: SharedFlow<CharacteristicData> = callbackHandler.terminalUpdates
     val debugData: SharedFlow<CharacteristicData> = callbackHandler.debugUpdates
+
+    init {
+        // Если это главный экземпляр приложения, сохраняем его для виджета
+        if (isMainInstance) {
+            activeInstance = this
+        }
+
+        // Подписываем обработчик списка пользователей на обновления
+        coroutineScope.launch {
+            callbackHandler.characteristicUpdates.collect { data ->
+                userListHandler.handleData(data)
+            }
+        }
+
+        // Сброс флагов подписки при отключении
+        coroutineScope.launch {
+            connectionStateFlow.collect { state ->
+                if (state == ConnectionState.DISCONNECTED) {
+                    isSensorSubscribed = false
+                    isDebugSubscribed = false
+                }
+            }
+        }
+    }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun connect(device: BluetoothDevice, autoConnect: Boolean = false): ConnectResult {
@@ -191,21 +201,39 @@ class BleConnectionManager(
         return gatt.writeDescriptor(descriptor, enableValue) == BluetoothStatusCodes.SUCCESS
     }
 
+    private var isSensorSubscribed = false
+    private var isDebugSubscribed = false
+
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun subscribeToSensorData(): Boolean {
+    suspend fun subscribeToSensorData(force: Boolean = false): Boolean {
+        if (isSensorSubscribed && !force) {
+            Log.d("BleConnMgr", "📡 Already subscribed to sensor data, skipping.")
+            return true
+        }
+        Log.d("BleConnMgr", "📡 Subscribing to sensor data (Force=$force)...")
         val systemMessageLog = subscribeToCharacteristic(SYSTEM_MESSAGE_CHARACTERISTIC)
+        kotlinx.coroutines.delay(300) // Увеличенная задержка
         val terminalLog = subscribeToCharacteristic(TERMINAL_CHARACTERISTIC)
-        return systemMessageLog && terminalLog
+        
+        isSensorSubscribed = systemMessageLog && terminalLog
+        Log.d("BleConnMgr", "📡 Subscriptions: System=$systemMessageLog, Terminal=$terminalLog")
+        return isSensorSubscribed
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun subscribeToDebugData(): Boolean {
-        return subscribeToCharacteristic(DEBUG_CHARACTERISTIC)
+    suspend fun subscribeToDebugData(): Boolean {
+        if (isDebugSubscribed) return true
+        Log.d("BleConnMgr", "📡 Subscribing to debug data...")
+        isDebugSubscribed = subscribeToCharacteristic(DEBUG_CHARACTERISTIC)
+        return isDebugSubscribed
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun unsubscribeFromDebugData(): Boolean {
-        return unsubscribeFromCharacteristic(DEBUG_CHARACTERISTIC)
+    suspend fun unsubscribeFromDebugData(): Boolean {
+        Log.d("BleConnMgr", "📡 Unsubscribing from debug data...")
+        val result = unsubscribeFromCharacteristic(DEBUG_CHARACTERISTIC)
+        if (result) isDebugSubscribed = false
+        return result
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)

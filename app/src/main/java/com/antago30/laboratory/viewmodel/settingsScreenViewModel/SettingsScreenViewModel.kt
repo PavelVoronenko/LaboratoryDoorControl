@@ -98,11 +98,6 @@ class SettingsScreenViewModel(
     private val _wifiPassword = MutableStateFlow(settingsRepo.getWifiPassword())
     val wifiPassword: StateFlow<String> = _wifiPassword.asStateFlow()
 
-    // === Буфер для сборки чанков USERLIST ===
-    private val userListChunks = mutableMapOf<Int, String>()
-    private var userListTotalChunks = 0
-    private var userListReceiving = false
-
     var selectedDeviceName by mutableStateOf<String?>(null)
         private set
 
@@ -125,80 +120,14 @@ class SettingsScreenViewModel(
             }
         }
 
-        // Слушаем входящие данные для обновления информации о пользователе
+        // Слушаем централизованный поток пользователей для обновления информации о текущем пользователе
         viewModelScope.launch {
-            connectionManager.characteristicData.collect { data ->
-                val response = String(data.value.toByteArray(), Charsets.UTF_8).trim()
-                if (response.startsWith("USERLIST_PKT:")) {
-                    handleUserListChunk(response)
+            connectionManager.userListFlow.collect { users ->
+                if (users.isNotEmpty()) {
+                    settingsRepo.updateCurrentUserInfoFromList(users)
+                    _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
                 }
             }
-        }
-    }
-
-    private fun handleUserListChunk(packet: String) {
-        try {
-            val headerEnd = packet.indexOf('|')
-            if (headerEnd == -1) return
-
-            val header = packet.substring(13, headerEnd)
-            val headerParts = header.split('/')
-            val chunkIndex = headerParts[0].toInt()
-            val totalChunks = if (headerParts.size > 1) headerParts[1].toIntOrNull() ?: -1 else -1
-
-            val dataStart = headerEnd + 1
-            val hasEnd = packet.endsWith("|END")
-            val dataEnd = if (hasEnd) packet.length - 4 else packet.length
-            val chunkData = if (dataEnd <= dataStart) "" else packet.substring(dataStart, dataEnd)
-
-            if (chunkIndex == 0) {
-                userListChunks.clear()
-                userListReceiving = true
-                userListTotalChunks = totalChunks
-            }
-            
-            userListChunks[chunkIndex] = chunkData
-
-            if (hasEnd) {
-                assembleAndParseUserList()
-            }
-        } catch (e: Exception) {
-            Log.e("SettingsViewModel", "Error parsing chunk", e)
-        }
-    }
-
-    private fun assembleAndParseUserList() {
-        val sortedData = userListChunks.toSortedMap().values.joinToString("")
-        userListChunks.clear()
-        userListReceiving = false
-
-        if (sortedData.isBlank() || sortedData == "|") return
-
-        try {
-            val parsed = sortedData.split("|")
-                .filter { it.isNotBlank() }
-                .mapNotNull { entry ->
-                    val parts = entry.split(",")
-                    if (parts.size >= 8) {
-                        UserInfo(
-                            id = parts[0].toIntOrNull() ?: return@mapNotNull null,
-                            name = parts[1].trim(),
-                            macAddress = parts[2].trim(),
-                            location = parts[3].trim(),
-                            uuid = parts[4].trim(),
-                            serviceData = parts[5].trim(),
-                            rssiThresholdEntry = parts[6].toIntOrNull() ?: -70,
-                            rssiThresholdExit = parts[7].toIntOrNull() ?: -70
-                        )
-                    } else null
-                }
-            
-            // Обновляем текущего пользователя, если он есть в списке
-            settingsRepo.updateCurrentUserInfoFromList(parsed)
-            _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
-            Log.d("SettingsViewModel", "✅ Thresholds synchronized from controller")
-        } catch (e: Exception) {
-            Log.e("SettingsViewModel", "Error parsing user list", e)
         }
     }
 
@@ -213,7 +142,6 @@ class SettingsScreenViewModel(
 
     fun refreshData() {
         _currentUserInfo.value = settingsRepo.getCurrentUserInfo()
-        fetchUsers()
     }
 
     fun updateThresholds(entry: String, exit: String) {
@@ -290,10 +218,13 @@ class SettingsScreenViewModel(
     fun startTerminalObservation() {
         if (terminalObservationJob?.isActive == true) return
 
+        Log.d("SettingsViewModel", "🔭 Starting terminal observation")
         terminalObservationJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
             connectionManager.terminalData.collect { characteristic ->
                 val bytes = characteristic.value
                 val rawMessage = String(bytes.toByteArray(), Charsets.UTF_8).trim()
+                
+                Log.d("SettingsViewModel", "📥 Terminal data received: ${rawMessage.take(20)}...")
                 
                 if (rawMessage.isEmpty()) return@collect
 

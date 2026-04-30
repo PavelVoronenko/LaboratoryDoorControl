@@ -94,11 +94,12 @@ fun SettingsScreen(
     // Подписка на данные при готовности соединения
     LaunchedEffect(bleConnectionState) {
         if (bleConnectionState == com.antago30.laboratory.model.ConnectionState.READY) {
-            connectionManager.subscribeToSensorData()
-            connectionManager.requestMtu(200)
+            // Принудительно подписываемся на терминал при входе в настройки
+            connectionManager.subscribeToSensorData(force = true)
+            connectionManager.requestMtu(512)
 
             // Запрос истории логов и списка пользователей после готовности сервисов
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(600)
             viewModel.requestLogHistory()
             viewModel.fetchUsers()
         }

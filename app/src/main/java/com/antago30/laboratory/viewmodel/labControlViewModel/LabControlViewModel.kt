@@ -95,15 +95,6 @@ class LabControlViewModel(
             }
         }
 
-        // Проверяем, не установлено ли соединение уже при создании ViewModel
-        viewModelScope.launch {
-            delay(50) // Небольшая задержка для инициализации
-            if (connectionManager.connectionStateFlow.value == ConnectionState.READY) {
-                Log.d("LabControlVM", "🔗 Соединение уже установлено, запрашиваем список пользователей")
-                fetchUserListFromController()
-            }
-        }
-
         viewModelScope.launch {
             connectionManager.characteristicData.collect { data ->
                 // Если приложение в фоне, игнорируем данные

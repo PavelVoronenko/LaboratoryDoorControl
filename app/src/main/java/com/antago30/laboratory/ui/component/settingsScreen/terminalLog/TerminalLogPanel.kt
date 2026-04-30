@@ -337,11 +337,6 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
             )
         }
     } else {
-        // Вычисляем ширину временной метки (10 символов [HH:mm:ss]) на основе размера шрифта.
-        // Это позволяет выровнять сообщения в одну колонку, сохраняя поддержку масштабирования текста.
-        val density = LocalDensity.current
-        val timeWidth = with(density) { (13.sp * 6.05f).toDp() }
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -350,9 +345,7 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
         ) {
             Text(
                 text = entry.getFormattedTime(),
-                modifier = Modifier
-                    .width(timeWidth)
-                    .padding(top = 1.dp),
+                modifier = Modifier.padding(top = 1.dp),
                 style = TextStyle(
                     color = entry.getTimeColor(),
                     fontSize = 13.sp,
@@ -364,6 +357,8 @@ private fun TerminalLogRow(entry: TerminalLogEntry) {
                 maxLines = 1,
                 softWrap = false
             )
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             Text(
                 text = entry.message,
