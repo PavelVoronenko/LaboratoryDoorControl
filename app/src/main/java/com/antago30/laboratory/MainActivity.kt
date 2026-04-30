@@ -110,6 +110,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (::labControlViewModel.isInitialized) {
+            labControlViewModel.syncServiceState()
+        }
     }
 
     override fun onPause() {

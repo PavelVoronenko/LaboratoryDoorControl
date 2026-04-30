@@ -144,6 +144,13 @@ class AdvertisingServiceUseCase(
         val ctx = appContext ?: return
         val isRunning = checkIfServiceIsRunning(ctx)
         _isRunning.value = isRunning
+        
+        // Если в настройках включено, а сервис не запущен — запускаем его
+        if (!isRunning && settingsRepo.isAdvertisingEnabled()) {
+            Log.d("AdvertisingUseCase", "Service should be running but it's not. Auto-starting on sync.")
+            start()
+        }
+
         // НЕ вызываем здесь onServiceStateChanged, чтобы не сбивать тумблер при старте
     }
 

@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +44,7 @@ import com.antago30.laboratory.ui.component.labControlScreen.OpenDoorButton
 import com.antago30.laboratory.ui.component.labControlScreen.StaffPanel
 import com.antago30.laboratory.ui.component.labControlScreen.TopBar
 import com.antago30.laboratory.ui.theme.Primary
+import com.antago30.laboratory.util.AlarmPermissionHelper
 import com.antago30.laboratory.util.ControllerMessageBanner
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 
@@ -57,6 +62,8 @@ fun LabControlScreen(
     val functions by viewModel.functions.collectAsState()
     val isAdvertising by viewModel.isAdvertising.collectAsState()
     val showBatteryWarning by viewModel.showBatteryWarning.collectAsState()
+
+    var showAlarmPermissionDialog by remember { mutableStateOf(false) }
 
     // Диалог предупреждения о батарейке
     if (showBatteryWarning) {
@@ -121,12 +128,91 @@ fun LabControlScreen(
         )
     }
 
+    // Диалог запроса разрешения на будильники
+    if (showAlarmPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAlarmPermissionDialog = false },
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = Primary.copy(alpha = 0.12f),
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = "Стабильная работа",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Text(
+                    text = "Для гарантированного перезапуска рекламы в 6:00 утра (чтобы дверь всегда открывалась), приложению нужно разрешение на установку точных будильников.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            },
+            confirmButton = {
+                FilledTonalButton(
+                    onClick = {
+                        showAlarmPermissionDialog = false
+                        AlarmPermissionHelper.openAlarmSettings(context)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Primary,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "НАСТРОИТЬ",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { 
+                        showAlarmPermissionDialog = false
+                        viewModel.startBleAdvertising() // Всё равно запускаем, хоть и без гарантии в 6 утра
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("ПОЗЖЕ")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp)
+        )
+    }
+
     // Лаунчер для запроса BLUETOOTH_ADVERTISE
     val advertisePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            viewModel.startBleAdvertising()
+            if (AlarmPermissionHelper.canScheduleExactAlarms(context)) {
+                viewModel.startBleAdvertising()
+            } else {
+                showAlarmPermissionDialog = true
+            }
         }
     }
 
@@ -167,11 +253,16 @@ fun LabControlScreen(
             onFunctionToggled = { id, newState ->
                 if (id == "broadcast") {
                     if (newState) {
-                        if (androidx.core.content.ContextCompat.checkSelfPermission(
-                                context, Manifest.permission.BLUETOOTH_ADVERTISE
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            viewModel.startBleAdvertising()
+                        val hasBlePermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.BLUETOOTH_ADVERTISE
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                        if (hasBlePermission) {
+                            if (AlarmPermissionHelper.canScheduleExactAlarms(context)) {
+                                viewModel.startBleAdvertising()
+                            } else {
+                                showAlarmPermissionDialog = true
+                            }
                         } else {
                             advertisePermissionLauncher.launch(Manifest.permission.BLUETOOTH_ADVERTISE)
                         }

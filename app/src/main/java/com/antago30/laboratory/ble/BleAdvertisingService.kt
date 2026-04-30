@@ -68,6 +68,7 @@ class BleAdvertisingService : Service() {
         const val EXTRA_AD_DATA = "extra_ad_data"
         const val ACTION_STATE_CHANGED = "com.antago30.laboratory.ble.ACTION_STATE_CHANGED"
         const val ACTION_STOP = "com.antago30.laboratory.ble.ACTION_STOP"
+        const val ACTION_RESTART = "com.antago30.laboratory.ble.ACTION_RESTART"
         const val EXTRA_IS_RUNNING = "is_running"
     }
 
@@ -75,6 +76,8 @@ class BleAdvertisingService : Service() {
         super.onCreate()
         settingsRepo = SettingsRepository(applicationContext)
         registerReceiver(bluetoothStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        
+        scheduleDailyRestart(this)
         
         try {
             NotificationHelper.createNotificationChannel(applicationContext)
@@ -102,6 +105,13 @@ class BleAdvertisingService : Service() {
             stopAdvertisingInternal()
             stopSelf()
             return START_NOT_STICKY
+        }
+
+        if (intent?.action == ACTION_RESTART) {
+            android.util.Log.d("BleAdvertisingService", "Daily 6 AM restart triggered")
+            startAdvertisingInternal()
+            scheduleDailyRestart(this) // Планируем на следующий день
+            return START_REDELIVER_INTENT
         }
 
         if (ActivityCompat.checkSelfPermission(
@@ -135,9 +145,8 @@ class BleAdvertisingService : Service() {
                 if (currentUser != null) {
                     currentServiceUuid = UUID.fromString(currentUser.uuid)
                     currentAdData = currentUser.serviceData
-                    android.util.Log.d("BleAdvertisingService", "Restoring parameters after system kill. Waiting for Watchdog.")
-                    // Не запускаем рекламу сразу, чтобы не бесить пользователя при открытии приложения после Force Stop.
-                    // Watchdog проверит состояние через небольшой промежуток времени.
+                    android.util.Log.d("BleAdvertisingService", "Restoring parameters after system kill. Starting advertising.")
+                    startAdvertisingInternal()
                     startWatchdog()
                 } else {
                     stopSelf()
@@ -180,6 +189,42 @@ class BleAdvertisingService : Service() {
     private fun restartAdvertising() {
         if (currentServiceUuid != null) {
             startAdvertisingInternal()
+        }
+    }
+
+    private fun scheduleDailyRestart(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val intent = Intent(context, AdvertisingRestartReceiver::class.java)
+        val pendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            1001,
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val calendar = java.util.Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(java.util.Calendar.HOUR_OF_DAY, 6)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            
+            // Если сейчас уже больше 6 утра, планируем на завтра
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(java.util.Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+
+        try {
+            // Используем setAndAllowWhileIdle — это "железно" разбудит систему из Doze mode
+            // Даже если не сработает ровно в 06:00:00, оно сработает в ближайшее окно обслуживания системы.
+            alarmManager.setAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+            android.util.Log.d("BleAdvertisingService", "Scheduled daily restart for: ${calendar.time}")
+        } catch (e: Exception) {
+            android.util.Log.e("BleAdvertisingService", "Failed to schedule alarm", e)
         }
     }
 
