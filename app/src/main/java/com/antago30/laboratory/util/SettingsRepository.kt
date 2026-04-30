@@ -130,29 +130,26 @@ class SettingsRepository(context: Context) {
             return currentStaffList
         }
 
+        // Создаем карту текущих сотрудников для быстрого поиска по ID
+        val currentStaffMap = currentStaffList.associateBy { it.id }
+
         val updatedStaffList = userInfoList.map { userInfo ->
-            // Проверяем, есть ли уже такой сотрудник в текущем списке по имени (MAC может быть placeholder)
-            val existingStaff = currentStaffList.find {
-                it.name.equals(userInfo.name, ignoreCase = true)
-            }
+            val userIdString = userInfo.id.toString()
+            val existingStaff = currentStaffMap[userIdString]
 
             if (existingStaff != null) {
-                android.util.Log.d(
-                    "SettingsRepository",
-                    "🔄 Найдено совпадение по имени: ${userInfo.name}, сохраняем isInside=${existingStaff.isInside}"
-                )
-                // Обновляем ID, UUID, ServiceData, MAC и инициалы; сохраняем статус isInside
+                // Сотрудник уже есть, обновляем данные, сохраняя статус присутствия (isInside)
                 existingStaff.copy(
-                    id = userInfo.id.toString(), // Всегда используем актуальный ID от контроллера
+                    name = userInfo.name,
                     initials = generateInitials(userInfo.name),
                     serviceUUID = userInfo.uuid,
                     adData = userInfo.serviceData,
-                    macAddress = userInfo.macAddress // Также обновляем MAC на актуальный
+                    macAddress = userInfo.macAddress
                 )
             } else {
-                // Создаём нового сотрудника
+                // Новый сотрудник
                 StaffMember(
-                    id = userInfo.id.toString(),
+                    id = userIdString,
                     initials = generateInitials(userInfo.name),
                     name = userInfo.name,
                     isInside = false,
@@ -163,12 +160,12 @@ class SettingsRepository(context: Context) {
             }
         }
 
-        // Сохраняем обновлённый список
+        // Сохраняем обновлённый список (в SharedPreferences это всё равно на фоновом потоке apply())
         saveStaffList(updatedStaffList)
 
         android.util.Log.d(
             "SettingsRepository",
-            "✅ Синхронизировано: ${updatedStaffList.size} сотрудников из ${userInfoList.size} UserInfo"
+            "✅ Синхронизировано по ID: ${updatedStaffList.size} сотрудников"
         )
 
         return updatedStaffList

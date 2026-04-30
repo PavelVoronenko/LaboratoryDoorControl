@@ -1,7 +1,9 @@
 package com.antago30.laboratory
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,7 +17,6 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.ui.theme.LaboratoryTheme
-import com.antago30.laboratory.util.NotificationPermissionHelper
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModel
 import com.antago30.laboratory.viewmodel.labControlViewModel.LabControlViewModelFactory
@@ -37,12 +38,16 @@ class MainActivity : ComponentActivity() {
     private lateinit var connectionManager: BleConnectionManager
     private lateinit var appLifecycleObserver: AppLifecycleObserver
 
-    // Лаунчер для запроса разрешения на уведомления
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            android.util.Log.d("MainActivity", "Notification permission granted")
+    // Лаунчер для запроса нескольких разрешений
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        permissions.entries.forEach {
+            android.util.Log.d("MainActivity", "Permission ${it.key} granted: ${it.value}")
+        }
+        // После получения разрешений пробуем синхронизировать состояние сервиса
+        if (::labControlViewModel.isInitialized) {
+            labControlViewModel.syncServiceState()
         }
     }
 
@@ -70,7 +75,6 @@ class MainActivity : ComponentActivity() {
         )
         labControlViewModel = ViewModelProvider(this, labControlFactory)[LabControlViewModel::class.java]
         labControlViewModel.setAppContext(applicationContext)
-        labControlViewModel.syncServiceState()
 
         val settingsFactory = SettingsScreenViewModelFactory(
             settingsRepo = settingsRepo,
@@ -87,8 +91,8 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         
-        // Запрашиваем разрешение на уведомления при первом запуске
-        NotificationPermissionHelper.requestIfNeeded(this, notificationPermissionLauncher)
+        // Запрашиваем все необходимые разрешения
+        checkAndRequestPermissions()
 
         setContent {
             LaboratoryTheme {
@@ -105,6 +109,25 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
+        }
+    }
+
+    private fun checkAndRequestPermissions() {
+        val permissions = mutableListOf<String>()
+        
+        // Bluetooth (Android 12+)
+        permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+        permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE)
+        permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+        
+        // Уведомления (Android 13+)
+        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+
+        if (permissions.isNotEmpty()) {
+            requestPermissionLauncher.launch(permissions.toTypedArray())
+        } else {
+            // Если запрашивать нечего, просто синхронизируем
+            labControlViewModel.syncServiceState()
         }
     }
 

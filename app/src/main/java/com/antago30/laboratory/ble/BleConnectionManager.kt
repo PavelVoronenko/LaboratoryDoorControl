@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
@@ -16,13 +17,16 @@ import com.antago30.laboratory.ble.bleConnectionManager.BleCommandSender
 import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionHandler
 import com.antago30.laboratory.ble.bleConnectionManager.BleConnectionState
 import com.antago30.laboratory.ble.bleConnectionManager.BleGattCallbackHandler
+import com.antago30.laboratory.ble.bleConnectionManager.BleUserListHandler
 import com.antago30.laboratory.model.CharacteristicData
 import com.antago30.laboratory.model.ConnectResult
 import com.antago30.laboratory.model.ConnectionState
+import com.antago30.laboratory.model.UserInfo
 import com.antago30.laboratory.util.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class BleConnectionManager(
@@ -37,6 +41,13 @@ class BleConnectionManager(
         // Если это главный экземпляр приложения, сохраняем его для виджета
         if (isMainInstance) {
             activeInstance = this
+        }
+
+        // Подписываем обработчик списка пользователей на обновления
+        coroutineScope.launch {
+            callbackHandler.characteristicUpdates.collect { data ->
+                userListHandler.handleData(data)
+            }
         }
     }
 
@@ -62,6 +73,17 @@ class BleConnectionManager(
         coroutineScope = coroutineScope
     )
     private val connectionHandler = BleConnectionHandler(context, callbackHandler)
+    
+    private val userListHandler = BleUserListHandler(
+        coroutineScope = coroutineScope,
+        settingsRepo = settingsRepo,
+        connectionStateFlow = connectionState.state,
+        onSyncComplete = {
+            @Suppress("MissingPermission")
+            requestPriority(BluetoothGatt.CONNECTION_PRIORITY_BALANCED)
+        }
+    )
+
     private val commandSender = BleCommandSender(
         getGatt = { connectionHandler.getGatt() },
         serviceUuid = SERVICE_UUID,
@@ -70,6 +92,7 @@ class BleConnectionManager(
 
     // Публичные API
     val connectionStateFlow: StateFlow<ConnectionState> = connectionState.state
+    val userListFlow: StateFlow<List<UserInfo>> = userListHandler.users
     val characteristicData: SharedFlow<CharacteristicData> = callbackHandler.characteristicUpdates
     val terminalData: SharedFlow<CharacteristicData> = callbackHandler.terminalUpdates
     val debugData: SharedFlow<CharacteristicData> = callbackHandler.debugUpdates
@@ -92,6 +115,10 @@ class BleConnectionManager(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun sendCommand(command: String = "TEST"): BleCommandSender.Result {
+        // Если запрашиваем список пользователей, повышаем приоритет для быстрой передачи
+        if (command == "LISTUSERS") {
+            requestPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+        }
         return commandSender.sendCommand(command)
     }
 
@@ -186,6 +213,13 @@ class BleConnectionManager(
         val gatt = connectionHandler.getGatt() ?: return false
         Log.d("BLE_DEBUG", "📡 Requesting MTU: $size")
         return gatt.requestMtu(size)
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun requestPriority(priority: Int): Boolean {
+        val gatt = connectionHandler.getGatt() ?: return false
+        Log.d("BLE_DEBUG", "📶 Requesting Priority: $priority")
+        return gatt.requestConnectionPriority(priority)
     }
 
     fun updateWidgets() {

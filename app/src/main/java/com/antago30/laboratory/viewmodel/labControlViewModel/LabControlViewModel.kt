@@ -10,7 +10,6 @@ import com.antago30.laboratory.ble.BleConnectionManager
 import com.antago30.laboratory.model.ConnectionState
 import com.antago30.laboratory.model.FunctionItem
 import com.antago30.laboratory.model.StaffMember
-import com.antago30.laboratory.model.UserInfo
 import com.antago30.laboratory.util.SettingsRepository
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.AdvertisingServiceUseCase
 import com.antago30.laboratory.viewmodel.labControlViewModel.useCase.BleDataParsingUseCase
@@ -50,18 +49,12 @@ class LabControlViewModel(
 
     val isAdvertising: StateFlow<Boolean> = advertisingUseCase.isRunning
 
-    // Flow для показа toast уведомления от контроллера
+    // === UI State ===
     private val _controllerToastMessage = MutableStateFlow<String?>(null)
     val controllerToastMessage: StateFlow<String?> = _controllerToastMessage
 
     private val _showBatteryWarning = MutableStateFlow(false)
     val showBatteryWarning: StateFlow<Boolean> = _showBatteryWarning
-
-    // === Буфер для сборки USERLIST чанков ===
-    private val userListChunks = mutableMapOf<Int, String>()
-    private var userListReceiving = false
-    private var userListLastReceived = 0L
-    private val chunckTimeoutMs = 2000L
 
     init {
         // Синхронизация состояния тумблера "Вещание" с фактическим состоянием сервиса
@@ -69,6 +62,16 @@ class LabControlViewModel(
             functionUseCase.setFunctionEnabled("broadcast", isRunning)
             if (isRunning != settingsRepo.isAdvertisingEnabled()) {
                 settingsRepo.saveAdvertisingEnabled(isRunning)
+            }
+        }
+
+        // Наблюдение за списком пользователей от менеджера
+        viewModelScope.launch {
+            connectionManager.userListFlow.collect { userInfoList ->
+                if (userInfoList.isNotEmpty()) {
+                    Log.d("LabControlVM", "✅ Received user list update (${userInfoList.size} users)")
+                    staffUseCase.syncStaffListFromController(userInfoList)
+                }
             }
         }
 
@@ -108,15 +111,7 @@ class LabControlViewModel(
                     return@collect
                 }
 
-                val response = String(data.value.toByteArray(), StandardCharsets.UTF_8).trim()
-                Log.d("LabControlVM", "📥 Received: '$response' (UUID: ${data.uuid})")
-
-                // Проверяем, это USERLIST чанк?
-                if (response.startsWith("USERLIST_PKT:") || response.startsWith("USERLIST:")) {
-                    handleUserListChunk(response)
-                } else {
-                    parsingUseCase.processData(data)
-                }
+                parsingUseCase.processData(data)
             }
         }
 
@@ -186,127 +181,6 @@ class LabControlViewModel(
         Log.d("LabControlVM", "📤 Отправляю LISTUSERS (состояние: $connectionState)")
         val result = connectionManager.sendCommand("LISTUSERS")
         Log.d("LabControlVM", "📥 Результат отправки LISTUSERS: $result")
-    }
-
-    // === Обработка чанков USERLIST ===
-    private fun handleUserListChunk(packet: String) {
-        try {
-            if (packet.startsWith("USERLIST:")) {
-                // Простой формат
-                val data = packet.removePrefix("USERLIST:")
-                parseAndSyncUserList(data)
-                return
-            }
-
-            // Чанкнутый формат: USERLIST_PKT:0/2|...
-            val headerEnd = packet.indexOf('|')
-            if (headerEnd == -1) return
-
-            val header = packet.substring(13, headerEnd)
-            val headerParts = header.split('/')
-            val chunkIndex = headerParts[0].toInt()
-            val totalChunks = if (headerParts.size > 1) headerParts[1].toIntOrNull() ?: -1 else -1
-
-            val dataStart = headerEnd + 1
-            val hasEnd = packet.endsWith("|END")
-
-            val dataEnd = if (hasEnd) packet.length - 4 else packet.length
-            val chunkData = if (dataEnd <= dataStart) "" else packet.substring(dataStart, dataEnd)
-
-            Log.d("LabControlVM", "📦 Chunk $chunkIndex/$totalChunks received (${chunkData.length} bytes)")
-
-            if (chunkIndex == 0 && chunkData.isEmpty() && hasEnd) {
-                Log.d("LabControlVM", "📭 Empty user list received")
-                resetUserListBuffer()
-                return
-            }
-
-            if (chunkIndex == 0) {
-                userListChunks.clear()
-                userListReceiving = true
-                checkChunkTimeout()
-            }
-
-            userListChunks[chunkIndex] = chunkData
-            userListLastReceived = System.currentTimeMillis()
-
-            if (hasEnd) {
-                Log.d("LabControlVM", "🏁 Received END marker, assembling ${userListChunks.size} chunks...")
-                assembleAndParseUserList()
-            }
-        } catch (e: Exception) {
-            Log.e("LabControlVM", "❌ Error parsing USERLIST chunk", e)
-            resetUserListBuffer()
-        }
-    }
-
-    private fun assembleAndParseUserList() {
-        val sortedData = userListChunks.toSortedMap().values.joinToString("")
-        Log.d("LabControlVM", "🔗 Full assembled data (${sortedData.length} bytes)")
-        resetUserListBuffer()
-
-        if (sortedData.isEmpty()) {
-            Log.d("LabControlVM", "📭 Empty list after assembly")
-            return
-        }
-
-        parseAndSyncUserList(sortedData)
-    }
-
-    private fun parseAndSyncUserList(data: String) {
-        if (data.isBlank() || data == "|") {
-            Log.d("LabControlVM", "📭 Empty user list data")
-            return
-        }
-
-        val userInfoList = data.split("|")
-            .filter { it.isNotBlank() }
-            .mapNotNull { entry ->
-                val parts = entry.split(",")
-                if (parts.size >= 6) {
-                    val id = parts[0].toIntOrNull() ?: return@mapNotNull null
-                    val name = parts[1].trim().takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    val mac = parts[2].trim().takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    val location = parts[3].trim()
-                    val uuid = parts[4].trim()
-                    val serviceData = parts[5].trim()
-
-                    UserInfo(
-                        id = id,
-                        name = name,
-                        macAddress = mac,
-                        location = location,
-                        uuid = uuid,
-                        serviceData = serviceData
-                    )
-                } else {
-                    Log.w("LabControlVM", "⚠️ Invalid entry (${parts.size} parts): ${entry.take(50)}")
-                    null
-                }
-            }
-            .distinctBy { it.id }
-
-        if (userInfoList.isNotEmpty()) {
-            Log.d("LabControlVM", "✅ Parsing ${userInfoList.size} users, syncing to staff list...")
-            staffUseCase.syncStaffListFromController(userInfoList)
-        } else {
-            Log.d("LabControlVM", "📭 No valid users parsed")
-        }
-    }
-
-    private fun resetUserListBuffer() {
-        userListChunks.clear()
-        userListReceiving = false
-    }
-
-    private fun checkChunkTimeout() {
-        viewModelScope.launch {
-            delay(chunckTimeoutMs)
-            if (userListReceiving && userListChunks.isNotEmpty()) {
-                Log.w("LabControlVM", "⚠️ USERLIST chunk timeout! Assembling partial data...")
-                assembleAndParseUserList()
-            }
-        }
     }
 
     fun setAppContext(context: Context) {

@@ -30,6 +30,7 @@ class BleAdvertisingService : Service() {
     private var bleAdvertiser: BleAdvertiser? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var watchdogJob: Job? = null
+    private var lastForceRestartHour: Long = -1
     private lateinit var settingsRepo: SettingsRepository
 
     private var currentServiceUuid: UUID? = null
@@ -82,19 +83,35 @@ class BleAdvertisingService : Service() {
         try {
             NotificationHelper.createNotificationChannel(applicationContext)
             
-            // Запускаем Foreground сразу в onCreate, чтобы избежать ForegroundServiceDidNotStartInTimeException
-            val notification = NotificationHelper.createNotification(this)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NotificationHelper.NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                )
+            // Проверяем разрешения ПЕРЕД вызовом startForeground.
+            // На Android 14+ это вызывает SecurityException, если разрешения не выданы.
+            val hasBluetoothPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
             } else {
-                startForeground(NotificationHelper.NOTIFICATION_ID, notification)
+                true // На старых версиях разрешения выдаются при установке
+            }
+
+            if (hasBluetoothPermission) {
+                val notification = NotificationHelper.createNotification(this)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(
+                        NotificationHelper.NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                    )
+                } else {
+                    startForeground(NotificationHelper.NOTIFICATION_ID, notification)
+                }
+            } else {
+                android.util.Log.e("BleAdvertisingService", "Cannot start FGS: Bluetooth permissions not granted")
+                // На Android 14+ если мы не вызовем startForeground после startForegroundService,
+                // приложение упадет. Поэтому если разрешений нет, мы просто останавливаемся.
+                stopSelf()
             }
         } catch (e: Exception) {
             android.util.Log.e("BleAdvertisingService", "Failed to start as foreground in onCreate", e)
+            stopSelf()
         }
     }
 
@@ -129,11 +146,18 @@ class BleAdvertisingService : Service() {
         if (serviceUuidStr != null) {
             // Прямой запуск (из приложения, виджета или BootReceiver)
             try {
-                currentServiceUuid = UUID.fromString(serviceUuidStr)
-                currentAdData = adData ?: "J7hs2Ak98g"
+                val newUuid = UUID.fromString(serviceUuidStr)
+                val newData = adData ?: "J7hs2Ak98g"
 
-                android.util.Log.d("BleAdvertisingService", "Direct start with UUID: $currentServiceUuid")
-                startAdvertisingInternal()
+                // Проверяем, не запущено ли уже с ТЕМИ ЖЕ данными
+                if (isAdvertisingActive && currentServiceUuid == newUuid && currentAdData == newData) {
+                    android.util.Log.d("BleAdvertisingService", "Advertising already running with same params, skipping restart")
+                } else {
+                    currentServiceUuid = newUuid
+                    currentAdData = newData
+                    android.util.Log.d("BleAdvertisingService", "Starting advertising with UUID: $currentServiceUuid")
+                    startAdvertisingInternal()
+                }
                 startWatchdog()
             } catch (e: Exception) {
                 android.util.Log.e("BleAdvertisingService", "Error starting advertising", e)
@@ -165,7 +189,10 @@ class BleAdvertisingService : Service() {
         val uuid = currentServiceUuid ?: return
         val data = currentAdData ?: return
 
-        bleAdvertiser?.stopAdvertising()
+        // ВСЕГДА останавливаем старое перед запуском нового
+        stopAdvertisingInternal()
+        
+        android.util.Log.d("BleAdvertisingService", "🚀 Starting NEW advertising instance")
         bleAdvertiser = BleAdvertiser(applicationContext, uuid, data).apply {
             onStateChanged = { active ->
                 isAdvertisingActive = active
@@ -176,13 +203,9 @@ class BleAdvertisingService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun stopAdvertisingInternal() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.BLUETOOTH_ADVERTISE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            bleAdvertiser?.stopAdvertising()
-        }
+        android.util.Log.d("BleAdvertisingService", "🛑 Stopping advertising internal...")
+        bleAdvertiser?.stopAdvertising()
+        bleAdvertiser = null
         isAdvertisingActive = false
     }
 
@@ -248,11 +271,16 @@ class BleAdvertisingService : Service() {
                     break
                 }
 
-                val currentHour = System.currentTimeMillis() / (1000 * 60 * 60)
-                val shouldForceRestart = (currentHour % 4 == 0L)
+                val currentTime = System.currentTimeMillis()
+                val currentHour = currentTime / (1000 * 60 * 60)
+                
+                // Проверяем, настал ли новый 4-часовой интервал для профилактического перезапуска
+                val isNewRestartWindow = (currentHour % 4 == 0L)
+                val hasAlreadyRestartedThisWindow = (lastForceRestartHour == currentHour)
 
-                if (!isAdvertisingActive || shouldForceRestart) {
-                    android.util.Log.d("BleAdvertisingService", "Watchdog: restarting advertising (active=$isAdvertisingActive, force=$shouldForceRestart)")
+                if (!isAdvertisingActive || (isNewRestartWindow && !hasAlreadyRestartedThisWindow)) {
+                    android.util.Log.d("BleAdvertisingService", "Watchdog: restarting advertising (active=$isAdvertisingActive, force=$isNewRestartWindow)")
+                    if (isNewRestartWindow) lastForceRestartHour = currentHour
                     restartAdvertising()
                 }
             }

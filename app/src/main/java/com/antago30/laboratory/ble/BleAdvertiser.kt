@@ -55,7 +55,7 @@ class BleAdvertiser(
             .build()
 
         val settings = AdvertiseSettings.Builder()
-            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+            .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
             .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
             .setTimeout(0)
             .build()
@@ -65,7 +65,11 @@ class BleAdvertiser(
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_ADVERTISE)
     fun stopAdvertising() {
-        advertiser?.stopAdvertising(advertiseCallback)
+        try {
+            advertiser?.stopAdvertising(advertiseCallback)
+        } catch (e: Exception) {
+            android.util.Log.e("BleAdvertiser", "Error stopping advertising", e)
+        }
         isAdvertising = false
         onStateChanged?.invoke(false)
     }
