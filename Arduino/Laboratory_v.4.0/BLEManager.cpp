@@ -357,7 +357,8 @@ void sendDebugData(float distance, int threshold, int doorTime, int doorCooldown
         String debugData = "DIST:" + String(distance, 2) + "|THRESH:" + String(threshold) +
                            "|DTIME:" + String(doorTime) + "|DPAUSE:" + String(doorCooldown) +
                            "|RTC:" + String(buf) + "|TEMP:" + String(temp, 1) +
-                           "|BAT:" + String(batteryWarning ? "0" : "1");
+                           "|BAT:" + String(batteryWarning ? "0" : "1") +
+                           "|VERBOSE:" + String(verboseLogging ? "1" : "0");
 
         DebugChar->setValue(debugData.c_str());
         DebugChar->notify();

@@ -218,6 +218,7 @@ fun SettingsHeader(
                         .scale(animatedDetailedLogsScale)
                         .clip(CircleShape)
                         .clickable(
+                            enabled = isConnected,
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(color = Primary, bounded = false),
                             onClick = {
@@ -234,7 +235,11 @@ fun SettingsHeader(
                     Icon(
                         imageVector = Icons.Default.Terminal,
                         contentDescription = "Подробное логирование",
-                        tint = if (isDetailedLogsEnabled) Primary else Primary.copy(alpha = 0.25f),
+                        tint = when {
+                            !isConnected -> Primary.copy(alpha = 0.15f)
+                            isDetailedLogsEnabled -> Primary
+                            else -> Primary.copy(alpha = 0.4f)
+                        },
                         modifier = Modifier.size(28.dp)
                     )
                 }

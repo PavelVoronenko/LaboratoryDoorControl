@@ -404,6 +404,10 @@ class SettingsScreenViewModel(
                             _debugTemperature.value = part.substring(5).toFloatOrNull() ?: 0f
                         } else if (part.startsWith("BAT:")) {
                             _isBatteryOk.value = part.substring(4) == "1"
+                        } else if (part.startsWith("VERBOSE:")) {
+                            val isEnabled = part.substring(8) == "1"
+                            _showDetailedLogs.value = isEnabled
+                            settingsRepo.saveShowDetailedLogs(isEnabled)
                         }
                     }
                 } catch (e: Exception) {
